@@ -6,6 +6,11 @@ import Shopify, { ApiVersion } from "@shopify/shopify-api";
 import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
+import cors from "@koa/cors";
+import bodyParser from "koa-bodyparser";
+import { createClient } from "./handlers/client";
+import { gql } from "apollo-boost";
+import { CREATE_TOKEN } from "../helpers/queries";
 
 dotenv.config();
 const port = parseInt(process.env.PORT, 10) || 8081;
@@ -15,12 +20,19 @@ const app = next({
 });
 const handle = app.getRequestHandler();
 
+// To Do ---- Add Custom Session storage
+// const mySessionStorage = new Shopify.Session.CustomSessionStorage(
+//   storeCallback,
+//   loadCallback,
+//   deleteCallback,
+// );
+
 Shopify.Context.initialize({
   API_KEY: process.env.SHOPIFY_API_KEY,
   API_SECRET_KEY: process.env.SHOPIFY_API_SECRET,
   SCOPES: process.env.SCOPES.split(","),
   HOST_NAME: process.env.HOST.replace(/https:\/\//, ""),
-  API_VERSION: ApiVersion.October20,
+  API_VERSION: ApiVersion.January21,
   IS_EMBEDDED_APP: true,
   // This should be replaced with your preferred storage strategy
   SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
@@ -56,8 +68,13 @@ app.prepare().then(async () => {
           );
         }
 
-        // Redirect to app with shop parameter upon auth
-        ctx.redirect(`/?shop=${shop}`);
+        const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
+
+        if(offlineSession){
+          ctx.redirect(`/?shop=${shop}`);
+        } else {
+          ctx.redirect(`/offlineLogin?shop=${shop}`);
+        }
       },
     })
   );
@@ -79,6 +96,216 @@ app.prepare().then(async () => {
     }
   });
 
+  router.get("/isMandatum", bodyParser(), async ctx => {
+    const shop = ctx.query.shop;
+    const productId = ctx.query.product;
+    let isMandatum = false;
+    let storeFrontToken = "";
+
+    try {
+      const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
+
+      if(!offlineSession){
+        throw new Error("Shop is not authenticated");
+      }
+
+      if(!shop || !productId){
+        throw new Error("Missing Parameter")
+      }
+
+      const client = createClient(shop, offlineSession.accessToken);
+
+      const getProductInfo = await client.query({
+        query: gql`
+          query Product($id: ID!){
+            product(id: $id){
+              id
+              title
+              tags
+              descuento: privateMetafield(key: "descuento", namespace: "mandatum"){
+                value
+              }
+              dias: privateMetafield(key: "dias_entrega", namespace: "mandatum"){
+                value
+              }
+            }
+          }
+        `,
+        variables: {
+          id: productId
+        }
+      });
+
+      const producto = getProductInfo.data.product;
+
+      if(producto.tags.includes("mandatum")){
+        isMandatum = true;
+
+        const createSFToken = await client.mutate({
+          mutation: CREATE_TOKEN,
+          variables: {
+            input: {
+              title: `Mandatum App - ${producto.title} - ${new Date().toLocaleString("es-MX")}`
+            }
+          }
+        });
+
+        storeFrontToken = createSFToken.data.storefrontAccessTokenCreate.storefrontAccessToken;
+      }
+
+      ctx.body = {
+        id: producto.id,
+        isMandatum,
+        title: isMandatum ? producto.title : undefined,
+        descuento: isMandatum ? producto.descuento.value : undefined,
+        dias: isMandatum ? producto.dias.value : undefined,
+        storeFrontToken
+      }
+    } catch (err) {
+      console.log(err);
+      ctx.response.status = 500;
+      ctx.body = err.message;
+    }
+  });
+
+  router.post("/getDiscountCode", bodyParser(), async (ctx) => {
+    
+    const shop = ctx.query.shop;
+    const { productId } = ctx.request.body;
+    const inicio = new Date().toISOString();
+    let fin = new Date();
+    fin.setDate(fin.getDate() + 1);
+    fin = fin.toISOString();
+
+    try {
+      const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
+
+      if(!offlineSession){
+        throw new Error("Shop is not authenticated");
+      }
+
+      if(!shop || !productId){
+        throw new Error("Missing Parameter")
+      }
+
+      const client = createClient(shop, offlineSession.accessToken);
+
+      const getProductInfo = await client.query({
+        query: gql`
+          query Product($id: ID!){
+            product(id: $id){
+              title
+              descuento: privateMetafield(key: "descuento", namespace: "mandatum"){
+                value
+              }
+              dias: privateMetafield(key: "dias_entrega", namespace: "mandatum"){
+                value
+              }
+            }
+          }
+        `,
+        variables: {
+          id: productId
+        }
+      });
+
+      const productData = getProductInfo.data.product;
+      console.log(productData);
+      const dicountCode = new Buffer.from(productData.title + new Date().toISOString());
+      const code = dicountCode.toString('base64');
+      const discount = parseFloat(productData.descuento.value);
+      const days = parseInt(productData.dias.value);
+
+      const shopifyDisc = await client.mutate({
+        mutation: gql`
+          mutation discountCodeBasicCreate(
+            $inicio: DateTime
+            $fin: DateTime
+            $discount: Float
+            $productId: ID!
+            $productTitle: String
+            $code: String
+          ) {
+            discountCodeBasicCreate(basicCodeDiscount: {
+              code: $code
+              endsAt: $fin
+              startsAt: $inicio
+              title: $productTitle
+              usageLimit: 1
+              customerSelection: {
+                all:true
+              }
+              customerGets: {
+                items: {
+                  products:{
+                    productsToAdd: [
+                      $productId
+                    ]
+                  }
+                }
+                value: {
+                  percentage: $discount
+                }
+              }
+            }) {
+              codeDiscountNode {
+                id
+                codeDiscount {
+                  ...on DiscountCodeBasic {
+                    codes(first: 1){
+                      edges {
+                        node {
+                          code
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+              userErrors {
+                code
+                extraInfo
+                field
+                message
+              }
+            }
+          }
+        `,
+        variables: {
+          inicio,
+          fin,
+          discount: discount / 100,
+          productId,
+          productTitle: `Mandatum - ${productData.title} - ${new Date().toLocaleDateString('es-MX')}`,
+          code
+        }
+      })
+
+      ctx.body = shopifyDisc.data.discountCodeBasicCreate;
+    } catch (error) {
+      console.error(error);
+      ctx.response.status = 500;
+      ctx.body = error.message;
+    }
+  });
+
+  router.get("/offlineLogin", async (ctx) => {
+    const shop = ctx.query.shop;
+
+    let authRoute = await Shopify.Auth.beginAuth(ctx.req, ctx.res, shop, '/auth/offlineCallback', false);
+    return ctx.redirect(authRoute);
+  });
+
+  router.get("/auth/offlineCallback", async (ctx) => {
+    const shop = ctx.query.shop;
+    try {
+      await Shopify.Auth.validateAuthCallback(ctx.req, ctx.res, ctx.query); 
+    } catch (error) {
+      console.error(error);
+    }
+    return ctx.redirect(`/?shop=${shop}`);
+  });
+
   router.post("/webhooks", async (ctx) => {
     try {
       await Shopify.Webhooks.Registry.process(ctx.req, ctx.res);
@@ -90,7 +317,7 @@ app.prepare().then(async () => {
 
   router.post(
     "/graphql",
-    verifyRequest({ returnHeader: true }),
+    verifyRequest({ returnHeader: true}),
     async (ctx, next) => {
       await Shopify.Utils.graphqlProxy(ctx.req, ctx.res);
     }
@@ -100,6 +327,7 @@ app.prepare().then(async () => {
   router.get("/_next/webpack-hmr", handleRequest); // Webpack content is clear
   router.get("(.*)", verifyRequest(), handleRequest); // Everything else must have sessions
 
+  server.use(cors());
   server.use(router.allowedMethods());
   server.use(router.routes());
   server.listen(port, () => {

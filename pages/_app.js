@@ -57,8 +57,8 @@ class MyApp extends App {
         theme={{
           colors: {
             critical: "#cc0e3a",
-            highlight: "#650078",
-            primary: "#650078"
+            highlight: "#492fb1",
+            primary: "#492fb1"
           }
         }}
         i18n={translations}

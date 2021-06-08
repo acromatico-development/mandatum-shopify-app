@@ -22,6 +22,7 @@
     "@babel/polyfill": "^7.6.0",
     "@babel/preset-env": "^7.12.11",
     "@babel/register": "^7.12.10",
+    "@koa/cors": "^3.1.0",
     "@shopify/app-bridge-react": "^1.29.0",
     "@shopify/app-bridge-utils": "^1.29.0",
     "@shopify/koa-shopify-auth": "^4.1.2",
@@ -32,6 +33,7 @@
     "graphql": "^14.5.8",
     "isomorphic-fetch": "^3.0.0",
     "koa": "^2.13.1",
+    "koa-bodyparser": "^4.3.0",
     "koa-router": "^10.0.0",
     "koa-session": "^6.1.0",
     "next": "^10.0.4",
@@ -70,6 +72,8 @@
     ]
   },
   "stylelint": {
-    "extends": ["@shopify/stylelint-plugin"]
+    "extends": [
+      "@shopify/stylelint-plugin"
+    ]
   }
 }
