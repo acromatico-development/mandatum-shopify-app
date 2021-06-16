@@ -16,6 +16,7 @@ export const APP_DATA = gql`
           createdAt
           currentPeriodEnd
           lineItems {
+            id
             usageRecords(first: 10) {
               edges {
                 cursor
@@ -64,6 +65,24 @@ export const APP_INSTALL = gql`
   }
 `;
 
+export const RECURRING_CHARGE = gql`
+  mutation appUsageRecordCreate($subscriptionLineItemId: ID!, $price: MoneyInput!, $description: String!) {
+    appUsageRecordCreate(
+      subscriptionLineItemId: $subscriptionLineItemId
+      price: $price
+      description: $description
+    ) {
+      appUsageRecord {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`
+
 export const JS_INSTALL = gql`
   mutation scriptTagCreate($input: ScriptTagInput!) {
     scriptTagCreate(input: $input) {
@@ -78,6 +97,23 @@ export const JS_INSTALL = gql`
   }
 `;
 
+export const WEBHOOK_INSTALL = gql`
+  mutation webhookSubscriptionCreate($webhookSubscription: WebhookSubscriptionInput!) {
+    webhookSubscriptionCreate(
+      topic: ORDERS_PAID
+      webhookSubscription: $webhookSubscription
+    ) {
+      userErrors {
+        field
+        message
+      }
+      webhookSubscription {
+        id
+      }
+    }
+  }
+`
+
 export const JS_QUERY = gql`
   query scriptTags {
     scriptTags(
@@ -89,6 +125,29 @@ export const JS_QUERY = gql`
           createdAt
           displayScope
           src
+        }
+      }
+    }
+  }
+`;
+
+export const WEBHOOK_QUERY = gql`
+  query webhookSubscriptions {
+    webhookSubscriptions(
+      first: 1
+      callbackUrl: "https://e373123d9339.ngrok.io/sale"
+    ){
+      edges {
+        node {
+          id
+          createdAt
+          topic
+          endpoint {
+            __typename
+            ... on WebhookHttpEndpoint {
+              callbackUrl
+            }
+          }
         }
       }
     }
@@ -113,6 +172,18 @@ export const DELETE_JS = gql`
   mutation scriptTagDelete($id: ID!) {
     scriptTagDelete(id: $id) {
       deletedScriptTagId
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`
+
+export const DELETE_WEBHOOK = gql`
+  mutation webhookSubscriptionDelete($id: ID!) {
+    webhookSubscriptionDelete(id: $id) {
+      deletedWebhookSubscriptionId
       userErrors {
         field
         message
@@ -298,6 +369,25 @@ export const UPDATE_METAFIELDS = gql`
     }
   }
 `;
+
+export const GET_TOKENS = gql`
+  query getTokens {
+    shop {
+      storefrontAccessTokens(first:1) {
+        edges {
+          node {
+            id
+            accessToken
+            accessScopes{
+              handle
+            }
+            title
+          }
+        }
+      }
+    }
+  }
+`
 
 export const CREATE_TOKEN = gql`
   mutation storefrontAccessTokenCreate($input: StorefrontAccessTokenInput!) {

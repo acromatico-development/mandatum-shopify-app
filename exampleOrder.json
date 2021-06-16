@@ -1,0 +1,317 @@
+{
+  "id": 3892388331669,
+  "admin_graphql_api_id": "gid://shopify/Order/3892388331669",
+  "app_id": 5355611,
+  "browser_ip": "187.214.153.177",
+  "buyer_accepts_marketing": false,
+  "cancel_reason": null,
+  "cancelled_at": null,
+  "cart_token": null,
+  "checkout_id": 21309233299605,
+  "checkout_token": "4dd596f59b54bd43702e2ad932706438",
+  "client_details": {
+    "accept_language": "es-419,es;q=0.9,en;q=0.8",
+    "browser_height": 983,
+    "browser_ip": "187.214.153.177",
+    "browser_width": 1116,
+    "session_hash": null,
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36"
+  },
+  "closed_at": null,
+  "confirmed": true,
+  "contact_email": "rafa@acromati.co",
+  "created_at": "2021-06-14T20:41:11-05:00",
+  "currency": "MXN",
+  "current_subtotal_price": "1750.00",
+  "current_subtotal_price_set": {
+    "shop_money": { "amount": "1750.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "1750.00", "currency_code": "MXN" }
+  },
+  "current_total_discounts": "750.00",
+  "current_total_discounts_set": {
+    "shop_money": { "amount": "750.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "750.00", "currency_code": "MXN" }
+  },
+  "current_total_duties_set": null,
+  "current_total_price": "2030.00",
+  "current_total_price_set": {
+    "shop_money": { "amount": "2030.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "2030.00", "currency_code": "MXN" }
+  },
+  "current_total_tax": "280.00",
+  "current_total_tax_set": {
+    "shop_money": { "amount": "280.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "280.00", "currency_code": "MXN" }
+  },
+  "customer_locale": "es",
+  "device_id": null,
+  "discount_codes": [
+    {
+      "code": "Q29sbGFyIE1hbcOhIFBsYXRhMjAyMS0wNi0xNVQwMTozOTo1NS44MTNa",
+      "amount": "750.00",
+      "type": "percentage"
+    }
+  ],
+  "email": "rafa@acromati.co",
+  "financial_status": "paid",
+  "fulfillment_status": null,
+  "gateway": "bogus",
+  "landing_site": "/api/2020-07/graphql",
+  "landing_site_ref": null,
+  "location_id": null,
+  "name": "#1002",
+  "note": null,
+  "note_attributes": [{ "name": "Mandatum Order", "value": "true" }],
+  "number": 2,
+  "order_number": 1002,
+  "order_status_url": "https://pruba-ivan.myshopify.com/56347132053/orders/2d285ad7de59c9d519a7f20bccfcc7ff/authenticate?key=8b5dafbdab7222a4b1bbb15e245c729f",
+  "original_total_duties_set": null,
+  "payment_gateway_names": ["bogus"],
+  "phone": null,
+  "presentment_currency": "MXN",
+  "processed_at": "2021-06-14T20:41:10-05:00",
+  "processing_method": "direct",
+  "reference": null,
+  "referring_site": "https://pruba-ivan.myshopify.com/products/collar-mama-plata-925?_pos=1&_sid=7ef99439e&_ss=r",
+  "source_identifier": null,
+  "source_name": "web",
+  "source_url": null,
+  "subtotal_price": "1750.00",
+  "subtotal_price_set": {
+    "shop_money": { "amount": "1750.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "1750.00", "currency_code": "MXN" }
+  },
+  "tags": "",
+  "tax_lines": [
+    {
+      "price": "280.00",
+      "rate": 0.16,
+      "title": "VAT",
+      "price_set": {
+        "shop_money": { "amount": "280.00", "currency_code": "MXN" },
+        "presentment_money": { "amount": "280.00", "currency_code": "MXN" }
+      }
+    }
+  ],
+  "taxes_included": false,
+  "test": true,
+  "token": "2d285ad7de59c9d519a7f20bccfcc7ff",
+  "total_discounts": "750.00",
+  "total_discounts_set": {
+    "shop_money": { "amount": "750.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "750.00", "currency_code": "MXN" }
+  },
+  "total_line_items_price": "2500.00",
+  "total_line_items_price_set": {
+    "shop_money": { "amount": "2500.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "2500.00", "currency_code": "MXN" }
+  },
+  "total_outstanding": "0.00",
+  "total_price": "2030.00",
+  "total_price_set": {
+    "shop_money": { "amount": "2030.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "2030.00", "currency_code": "MXN" }
+  },
+  "total_price_usd": "102.13",
+  "total_shipping_price_set": {
+    "shop_money": { "amount": "0.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "0.00", "currency_code": "MXN" }
+  },
+  "total_tax": "280.00",
+  "total_tax_set": {
+    "shop_money": { "amount": "280.00", "currency_code": "MXN" },
+    "presentment_money": { "amount": "280.00", "currency_code": "MXN" }
+  },
+  "total_tip_received": "0.00",
+  "total_weight": 1000,
+  "updated_at": "2021-06-14T20:41:13-05:00",
+  "user_id": null,
+  "billing_address": {
+    "first_name": "Rafael",
+    "address1": "Av. División del Norte 806",
+    "phone": null,
+    "city": "CDMX",
+    "zip": "03100",
+    "province": "Ciudad de México",
+    "country": "Mexico",
+    "last_name": "González",
+    "address2": "",
+    "company": null,
+    "latitude": null,
+    "longitude": null,
+    "name": "Rafael González",
+    "country_code": "MX",
+    "province_code": "DF"
+  },
+  "customer": {
+    "id": 5368918507669,
+    "email": "rafa@acromati.co",
+    "accepts_marketing": false,
+    "created_at": "2021-06-14T14:58:07-05:00",
+    "updated_at": "2021-06-14T20:45:06-05:00",
+    "first_name": "Rafael",
+    "last_name": "González",
+    "orders_count": 0,
+    "state": "disabled",
+    "total_spent": "0.00",
+    "last_order_id": null,
+    "note": null,
+    "verified_email": true,
+    "multipass_identifier": null,
+    "tax_exempt": false,
+    "phone": null,
+    "tags": "",
+    "last_order_name": null,
+    "currency": "MXN",
+    "accepts_marketing_updated_at": "2021-06-14T14:58:08-05:00",
+    "marketing_opt_in_level": null,
+    "tax_exemptions": [],
+    "admin_graphql_api_id": "gid://shopify/Customer/5368918507669",
+    "default_address": {
+      "id": 6581761507477,
+      "customer_id": 5368918507669,
+      "first_name": "Rafael",
+      "last_name": "González",
+      "company": null,
+      "address1": "Av. División del Norte 806",
+      "address2": "",
+      "city": "CDMX",
+      "province": "Ciudad de México",
+      "country": "Mexico",
+      "zip": "03100",
+      "phone": null,
+      "name": "Rafael González",
+      "province_code": "DF",
+      "country_code": "MX",
+      "country_name": "Mexico",
+      "default": true
+    }
+  },
+  "discount_applications": [
+    {
+      "target_type": "line_item",
+      "type": "discount_code",
+      "value": "30.0",
+      "value_type": "percentage",
+      "allocation_method": "across",
+      "target_selection": "entitled",
+      "code": "Q29sbGFyIE1hbcOhIFBsYXRhMjAyMS0wNi0xNVQwMTozOTo1NS44MTNa"
+    }
+  ],
+  "fulfillments": [],
+  "line_items": [
+    {
+      "id": 10081725710485,
+      "admin_graphql_api_id": "gid://shopify/LineItem/10081725710485",
+      "fulfillable_quantity": 1,
+      "fulfillment_service": "manual",
+      "fulfillment_status": null,
+      "gift_card": false,
+      "grams": 1000,
+      "name": "Collar Mamá Plata",
+      "origin_location": {
+        "id": 2991593881749,
+        "country_code": "MX",
+        "province_code": "DF",
+        "name": "Pruba Ivan",
+        "address1": "Av. División Del Norte 806, int. 8",
+        "address2": "",
+        "city": "Del Valle",
+        "zip": "03100"
+      },
+      "price": "2500.00",
+      "price_set": {
+        "shop_money": { "amount": "2500.00", "currency_code": "MXN" },
+        "presentment_money": { "amount": "2500.00", "currency_code": "MXN" }
+      },
+      "product_exists": true,
+      "product_id": 6902704046229,
+      "properties": [{ "name": "Mandatum Discount", "value": "30%" }],
+      "quantity": 1,
+      "requires_shipping": true,
+      "sku": "DJPP11",
+      "taxable": true,
+      "title": "Collar Mamá Plata",
+      "total_discount": "0.00",
+      "total_discount_set": {
+        "shop_money": { "amount": "0.00", "currency_code": "MXN" },
+        "presentment_money": { "amount": "0.00", "currency_code": "MXN" }
+      },
+      "variant_id": 40289420902549,
+      "variant_inventory_management": "shopify",
+      "variant_title": "",
+      "vendor": "Plata .925",
+      "tax_lines": [
+        {
+          "price": "280.00",
+          "price_set": {
+            "shop_money": { "amount": "280.00", "currency_code": "MXN" },
+            "presentment_money": { "amount": "280.00", "currency_code": "MXN" }
+          },
+          "rate": 0.16,
+          "title": "VAT"
+        }
+      ],
+      "duties": [],
+      "discount_allocations": [
+        {
+          "amount": "750.00",
+          "amount_set": {
+            "shop_money": { "amount": "750.00", "currency_code": "MXN" },
+            "presentment_money": { "amount": "750.00", "currency_code": "MXN" }
+          },
+          "discount_application_index": 0
+        }
+      ]
+    }
+  ],
+  "payment_details": {
+    "credit_card_bin": "1",
+    "avs_result_code": null,
+    "cvv_result_code": null,
+    "credit_card_number": "•••• •••• •••• 1",
+    "credit_card_company": "Bogus"
+  },
+  "refunds": [],
+  "shipping_address": {
+    "first_name": "Rafael",
+    "address1": "Av. División del Norte 806",
+    "phone": null,
+    "city": "CDMX",
+    "zip": "03100",
+    "province": "Ciudad de México",
+    "country": "Mexico",
+    "last_name": "González",
+    "address2": "",
+    "company": null,
+    "latitude": null,
+    "longitude": null,
+    "name": "Rafael González",
+    "country_code": "MX",
+    "province_code": "DF"
+  },
+  "shipping_lines": [
+    {
+      "id": 3311286517909,
+      "carrier_identifier": null,
+      "code": "Standard",
+      "delivery_category": null,
+      "discounted_price": "0.00",
+      "discounted_price_set": {
+        "shop_money": { "amount": "0.00", "currency_code": "MXN" },
+        "presentment_money": { "amount": "0.00", "currency_code": "MXN" }
+      },
+      "phone": null,
+      "price": "0.00",
+      "price_set": {
+        "shop_money": { "amount": "0.00", "currency_code": "MXN" },
+        "presentment_money": { "amount": "0.00", "currency_code": "MXN" }
+      },
+      "requested_fulfillment_service_id": null,
+      "source": "shopify",
+      "title": "Standard",
+      "tax_lines": [],
+      "discount_allocations": []
+    }
+  ]
+}

@@ -13,7 +13,7 @@ import {
   Thumbnail,
   Stack,
   Button,
-  Subheading
+  Subheading,
 } from "@shopify/polaris";
 import { useCallback, useEffect, useState } from "react";
 import { useLazyQuery, useMutation, useQuery } from "react-apollo";
@@ -33,22 +33,37 @@ import {
   DELETE_APP,
   JS_INSTALL,
   JS_QUERY,
-  DELETE_JS
+  DELETE_JS,
+  WEBHOOK_QUERY,
+  DELETE_WEBHOOK,
+  WEBHOOK_INSTALL,
 } from "../helpers/queries";
 
 const Index = () => {
   const app = useAppBridge();
   const redirect = Redirect.create(app);
-  
+
   const { data, loading, error, refetch } = useQuery(MANDATE_PRODUCTS, {
     fetchPolicy: "no-cache",
   });
-  const { data: appData, loading: appLoading, error: appError } = useQuery(APP_DATA, {
-    fetchPolicy: "no-cache",
-  });
-  const { data: jsData, loading: jsLoading, error: jsError } = useQuery(JS_QUERY, {
-    fetchPolicy: "no-cache",
-  });
+  const { data: appData, loading: appLoading, error: appError } = useQuery(
+    APP_DATA,
+    {
+      fetchPolicy: "no-cache",
+    }
+  );
+  const { data: jsData, loading: jsLoading, error: jsError } = useQuery(
+    JS_QUERY,
+    {
+      fetchPolicy: "no-cache",
+    }
+  );
+  const { data: whData, loading: whLoading, error: whError } = useQuery(
+    WEBHOOK_QUERY,
+    {
+      fetchPolicy: "no-cache",
+    }
+  );
   const [queryProducts, qResults] = useLazyQuery(QUERY_PRODUCTS, {
     fetchPolicy: "no-cache",
   });
@@ -58,10 +73,16 @@ const Index = () => {
   const [jsInstall] = useMutation(JS_INSTALL, {
     fetchPolicy: "no-cache",
   });
+  const [whInstall] = useMutation(WEBHOOK_INSTALL, {
+    fetchPolicy: "no-cache",
+  });
   const [appDelete] = useMutation(DELETE_APP, {
-    fetchPolicy: "no-cache"
+    fetchPolicy: "no-cache",
   });
   const [jsDelete] = useMutation(DELETE_JS, {
+    fetchPolicy: "no-cache",
+  });
+  const [whDelete] = useMutation(DELETE_WEBHOOK, {
     fetchPolicy: "no-cache"
   });
   const [addMeta] = useMutation(ADD_METAFIELDS, {
@@ -99,42 +120,38 @@ const Index = () => {
     delivery: "",
   });
 
-  const handleSubscribe = useCallback(
-    async () => {
-      const installData = await appInstall({
+  const handleSubscribe = useCallback(async () => {
+    const installData = await appInstall({
+      variables: {
+        return: `${app.localOrigin}?shop=${appData.shop.url.split("//")[1]}`,
+      },
+    });
+
+    const urlRedir = installData.data.appSubscriptionCreate.confirmationUrl;
+
+    redirect.dispatch(Redirect.Action.REMOTE, urlRedir);
+  }, [appData, app, redirect]);
+
+  const deleteApp = useCallback(async () => {
+    const chargeId = appData.app.installation.activeSubscriptions[0]?.id;
+
+    const deletedApp = await appDelete({
+      variables: {
+        id: chargeId,
+      },
+    });
+
+    jsData.scriptTags.edges.forEach((scri) => {
+      console.log(scri.node);
+      jsDelete({
         variables: {
-          return: `${app.localOrigin}?shop=${appData.shop.url.split("//")[1]}`
-        }
+          id: scri.node.id,
+        },
       });
+    });
 
-      const urlRedir = installData.data.appSubscriptionCreate.confirmationUrl;
-
-      redirect.dispatch(Redirect.Action.REMOTE, urlRedir);
-    },[appData, app, redirect]
-  );
-
-  const deleteApp = useCallback(
-    async () => {
-      const chargeId = appData.app.installation.activeSubscriptions[0]?.id;
-
-      const deletedApp = await appDelete({
-        variables: {
-          id: chargeId
-        }
-      });
-
-      jsData.scriptTags.edges.forEach(scri => {
-        console.log(scri.node);
-        jsDelete({
-          variables: {
-            id: scri.node.id
-          }
-        });
-      });
-
-      redirect.dispatch(Redirect.Action.APP, "/");
-    }, [appData, jsData]
-  )
+    redirect.dispatch(Redirect.Action.APP, "/");
+  }, [appData, jsData]);
 
   const handleRefetch = useCallback(async () => {
     setGeneralLoading(true);
@@ -295,36 +312,94 @@ const Index = () => {
   // const handleRefetch
 
   useEffect(() => {
-
     if (!qResults.loading && !qResults.error && qResults.data) {
       const newData = qResults.data.products.edges.map((resp) => resp.node);
       setQueryData(newData);
     }
 
-    if(!appLoading && !appError && appData){
-      console.log(appData)
+    if (!appLoading && !appError && appData) {
+      console.log(appData);
     }
 
-    if(!jsLoading && !jsError && jsData && appData?.app?.installation?.activeSubscriptions.length > 0 && jsData.scriptTags.edges.length === 0){
+    if (
+      !whLoading &&
+      !whError &&
+      whData &&
+      (whData.webhookSubscriptions.edges.length === 0 ||
+        whData.webhookSubscriptions.edges.length > 1)
+    ) {
+      console.log("webhook", whData.webhookSubscriptions.edges);
+      whData.webhookSubscriptions.edges.forEach(who => {
+        whDelete({
+          variables: {
+            id: who.node.id
+          }
+        })
+      });
+
+      whInstall({
+        variables: {
+          webhookSubscription: {
+            callbackUrl: "https://e373123d9339.ngrok.io/sale"
+          }
+        }
+      }).then(resp => console.log(resp));
+    }
+
+    if (
+      !appLoading &&
+      !appError &&
+      appData &&
+      !jsLoading &&
+      !jsError &&
+      jsData &&
+      appData?.app?.installation?.activeSubscriptions.length > 0 &&
+      (jsData.scriptTags.edges.length === 0 ||
+        jsData.scriptTags.edges.length > 2)
+    ) {
+      console.log(jsData.scriptTags.edges);
+      jsData.scriptTags.edges.forEach((scri) => {
+        console.log(scri.node);
+        jsDelete({
+          variables: {
+            id: scri.node.id,
+          },
+        });
+      });
+
       jsInstall({
         variables: {
           input: {
-            src: "https://acromatico-development.github.io/mandatum-app/build/mandatum.js",
-            displayScope: "ALL"
-          }
-        }
+            src:
+              "https://acromatico-development.github.io/mandatum-app/build/mandatum.js",
+            displayScope: "ALL",
+          },
+        },
       });
       jsInstall({
         variables: {
           input: {
-            src: "https://cdn.shopify.com/s/shopify/option_selection.js?20cf2ffc74856c1f49a46f6e0abc4acf6ae5bb34",
-            displayScope: "ONLINE_STORE"
-          }
-        }
+            src:
+              "https://cdn.shopify.com/s/shopify/option_selection.js?20cf2ffc74856c1f49a46f6e0abc4acf6ae5bb34",
+            displayScope: "ONLINE_STORE",
+          },
+        },
       });
     }
-    
-  }, [qResults.loading, qResults.error, qResults.data, appLoading, appError, appData, jsData, jsError, jsLoading]);
+  }, [
+    qResults.loading,
+    qResults.error,
+    qResults.data,
+    appLoading,
+    appError,
+    appData,
+    jsData,
+    jsError,
+    jsLoading,
+    whLoading,
+    whError,
+    whData
+  ]);
 
   if (error || appError) {
     return (
@@ -336,22 +411,21 @@ const Index = () => {
 
   if (loading || appLoading) return <LoadingPage />;
 
-  if(appData?.app?.installation?.activeSubscriptions.length === 0) {
+  if (appData?.app?.installation?.activeSubscriptions.length === 0) {
     return (
-      <Page
-        title="Welcome to Mandatum"
-        subtitle="Please subscribe to procede"
-      >
+      <Page title="Welcome to Mandatum" subtitle="Please subscribe to procede">
         <Card sectioned>
           <TextContainer>
-              <Stack alignment="center" vertical={true}>
-                <Subheading element="h2">Subscribe to Mandatum</Subheading>
-                <Button primary onClick={handleSubscribe}>Suscribe</Button>
-              </Stack>
-            </TextContainer>
+            <Stack alignment="center" vertical={true}>
+              <Subheading element="h2">Subscribe to Mandatum</Subheading>
+              <Button primary onClick={handleSubscribe}>
+                Suscribe
+              </Button>
+            </Stack>
+          </TextContainer>
         </Card>
       </Page>
-    )
+    );
   }
 
   return (
@@ -373,7 +447,7 @@ const Index = () => {
           content: "Delete App",
           disabled: false,
           onAction: deleteApp,
-        }
+        },
       ]}
     >
       <Card title="Mandate Products" sectioned>
@@ -384,10 +458,18 @@ const Index = () => {
             )?.node
         ).length === 0 ? (
           <TextContainer>
-            {loading || generalLoading ? <Stack alignment="center" vertical={true}><Subheading element="h3">Loading...</Subheading></Stack> : <Stack alignment="center" vertical={true}>
-              <Subheading element="h3">No Products</Subheading>
-              <Button primary onClick={() => setActiveModal(true)}>Add Products</Button>
-            </Stack>}
+            {loading || generalLoading ? (
+              <Stack alignment="center" vertical={true}>
+                <Subheading element="h3">Loading...</Subheading>
+              </Stack>
+            ) : (
+              <Stack alignment="center" vertical={true}>
+                <Subheading element="h3">No Products</Subheading>
+                <Button primary onClick={() => setActiveModal(true)}>
+                  Add Products
+                </Button>
+              </Stack>
+            )}
           </TextContainer>
         ) : (
           <ResourceList
