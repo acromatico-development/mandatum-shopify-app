@@ -381,13 +381,13 @@ app.prepare().then(async () => {
           appData.data.app.installation.activeSubscriptions[0].lineItems[0].id;
 
         if (body.currency !== "USD") {
-          let toUSD = await fetch(
-            `https://openexchangerates.org/api/convert/${mandatumCharge}/${body.currency}/USD?app_id=c5448ef8ab1a4083826561960b4f51cd`
-          ).then((jso) => jso.json());
-
-          console.log("Dolares", toUSD);
-
           amount = 10;
+
+          // let toUSD = await fetch(
+          //   `https://openexchangerates.org/api/convert/${mandatumCharge}/${body.currency}/USD?app_id=c5448ef8ab1a4083826561960b4f51cd`
+          // ).then((jso) => jso.json());
+
+          // console.log("Dolares", toUSD);
         }
 
         const usage = await client.mutate({
