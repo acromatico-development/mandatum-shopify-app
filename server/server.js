@@ -3,11 +3,13 @@ import dotenv from "dotenv";
 import "isomorphic-fetch";
 import createShopifyAuth, { verifyRequest } from "@shopify/koa-shopify-auth";
 import Shopify, { ApiVersion } from "@shopify/shopify-api";
+import { Session } from '@shopify/shopify-api/dist/auth/session';
 import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
 import cors from "@koa/cors";
 import bodyParser from "koa-bodyparser";
+import mongoose from "mongoose";
 import { createClient } from "./handlers/client";
 import { gql } from "@apollo/client";
 import {
@@ -16,9 +18,9 @@ import {
   APP_DATA,
   RECURRING_CHARGE,
 } from "../helpers/queries";
-import fs from "fs";
 
 dotenv.config();
+
 const port = parseInt(process.env.PORT, 10) || 8081;
 const dev = process.env.NODE_ENV !== "production";
 const app = next({
@@ -26,12 +28,71 @@ const app = next({
 });
 const handle = app.getRequestHandler();
 
+mongoose.connect(
+  "mongodb+srv://mandatum_admin:Mandatum2021*-@sessions.zov4x.mongodb.net/sessions?retryWrites=true&w=majority",
+  { useNewUrlParser: true, useUnifiedTopology: true }
+).then(resp => {
+  console.log("connected to mongo");
+});
+
+const sessionSchema = new mongoose.Schema({
+  id: String,
+  shop: String,
+  state: String,
+  scope: String,
+  expires: Date,
+  isOnline: Boolean,
+  accessToken: String,
+  onlineAccessInfo: {}
+});
+
+const SessionSch = mongoose.model('Session', sessionSchema);
+
+async function storeCallback(session) {
+  console.log("Store Session", session);
+  return await SessionSch.findOneAndUpdate({ id: session.id }, session, {
+    new: true,
+    upsert: true
+  });
+}
+
+async function loadCallback(id) {
+  console.log(typeof id);
+  const loadedSession = await SessionSch.findOne({ id: id });
+  console.log("Load Session", loadedSession);
+
+  
+
+  if(!loadedSession){
+    return undefined;
+  }
+
+  const sess = new Session(loadedSession.id);
+
+  const { shop, state, scope, accessToken, isOnline, expires, onlineAccessInfo } = loadedSession
+  sess.shop = shop
+  sess.state = state
+  sess.scope = scope
+  sess.expires = expires ? new Date(expires) : undefined
+  sess.isOnline = isOnline
+  sess.accessToken = accessToken
+  sess.onlineAccessInfo = onlineAccessInfo
+
+  return sess;
+}
+
+async function deleteCallback(id) {
+  const loadedSession = await SessionSch.findOneAndDelete({ id: id });
+  console.log("Delete Session", loadedSession);
+  return loadedSession;
+}
+
 // To Do ---- Add Custom Session storage
-// const mySessionStorage = new Shopify.Session.CustomSessionStorage(
-//   storeCallback,
-//   loadCallback,
-//   deleteCallback,
-// );
+const mySessionStorage = new Shopify.Session.CustomSessionStorage(
+  storeCallback,
+  loadCallback,
+  deleteCallback
+);
 
 Shopify.Context.initialize({
   API_KEY: process.env.SHOPIFY_API_KEY,
@@ -41,7 +102,7 @@ Shopify.Context.initialize({
   API_VERSION: ApiVersion.January21,
   IS_EMBEDDED_APP: true,
   // This should be replaced with your preferred storage strategy
-  SESSION_STORAGE: new Shopify.Session.MemorySessionStorage(),
+  SESSION_STORAGE: mySessionStorage,
 });
 
 // Storing the currently active shops in memory will force them to re-login when your server restarts. You should

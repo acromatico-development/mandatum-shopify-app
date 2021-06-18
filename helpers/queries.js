@@ -135,7 +135,7 @@ export const WEBHOOK_QUERY = gql`
   query webhookSubscriptions {
     webhookSubscriptions(
       first: 1
-      callbackUrl: "https://e373123d9339.ngrok.io/sale"
+      callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale"
     ){
       edges {
         node {

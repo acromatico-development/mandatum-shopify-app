@@ -340,7 +340,7 @@ const Index = () => {
       whInstall({
         variables: {
           webhookSubscription: {
-            callbackUrl: "https://e373123d9339.ngrok.io/sale"
+            callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale"
           }
         }
       }).then(resp => console.log(resp));
