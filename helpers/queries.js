@@ -46,7 +46,7 @@ export const APP_INSTALL = gql`
           plan: {
             appUsagePricingDetails: {
               cappedAmount: { amount: 3000.00, currencyCode: USD },
-              terms: "App will charge the 50% of the allowed discount in mandate products each time a discount is used."
+              terms: "App will charge the 2% of the allowed discount in mandate products each time a discount is used."
             }
           }
         }

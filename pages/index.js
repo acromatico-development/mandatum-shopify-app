@@ -52,7 +52,7 @@ const Index = () => {
       fetchPolicy: "no-cache",
     }
   );
-  const { data: jsData, loading: jsLoading, error: jsError } = useQuery(
+  const { data: jsData, loading: jsLoading, error: jsError, refetch: jsRefetch } = useQuery(
     JS_QUERY,
     {
       fetchPolicy: "no-cache",
@@ -83,7 +83,7 @@ const Index = () => {
     fetchPolicy: "no-cache",
   });
   const [whDelete] = useMutation(DELETE_WEBHOOK, {
-    fetchPolicy: "no-cache"
+    fetchPolicy: "no-cache",
   });
   const [addMeta] = useMutation(ADD_METAFIELDS, {
     fetchPolicy: "no-cache",
@@ -119,6 +119,7 @@ const Index = () => {
     discount: "",
     delivery: "",
   });
+  const [installing, setInstalling] = useState(false);
 
   const handleSubscribe = useCallback(async () => {
     const installData = await appInstall({
@@ -142,7 +143,6 @@ const Index = () => {
     });
 
     jsData.scriptTags.edges.forEach((scri) => {
-      console.log(scri.node);
       jsDelete({
         variables: {
           id: scri.node.id,
@@ -150,8 +150,16 @@ const Index = () => {
       });
     });
 
+    whData.webhookSubscriptions.edges.forEach((who) => {
+      whDelete({
+        variables: {
+          id: who.node.id,
+        },
+      });
+    });
+
     redirect.dispatch(Redirect.Action.APP, "/");
-  }, [appData, jsData]);
+  }, [appData, jsData, whData]);
 
   const handleRefetch = useCallback(async () => {
     setGeneralLoading(true);
@@ -309,7 +317,40 @@ const Index = () => {
     [selectedProduct]
   );
 
-  // const handleRefetch
+  const handleInstall = useCallback(async () => {
+    setInstalling(true);
+    for (let i = 0; i <= jsData.scriptTags.edges.length - 1; i++){
+      await jsDelete({
+        variables: {
+          id: jsData.scriptTags.edges[i].node.id,
+        },
+      });
+    }
+
+    await jsInstall({
+      variables: {
+        input: {
+          src:
+            "https://acromatico-development.github.io/mandatum-app/build/mandatum.js",
+          displayScope: "ALL",
+        },
+      },
+    });
+
+    await jsInstall({
+      variables: {
+        input: {
+          src:
+            "https://cdn.shopify.com/s/shopify/option_selection.js?20cf2ffc74856c1f49a46f6e0abc4acf6ae5bb34",
+          displayScope: "ONLINE_STORE",
+        },
+      },
+    });
+
+    await jsRefetch();
+
+    setInstalling(false);
+  }, [jsData]);
 
   useEffect(() => {
     if (!qResults.loading && !qResults.error && qResults.data) {
@@ -318,6 +359,7 @@ const Index = () => {
     }
 
     if (!appLoading && !appError && appData) {
+      console.log("app");
       console.log(appData);
     }
 
@@ -328,63 +370,34 @@ const Index = () => {
       (whData.webhookSubscriptions.edges.length === 0 ||
         whData.webhookSubscriptions.edges.length > 1)
     ) {
-      console.log("webhook", whData.webhookSubscriptions.edges);
-      whData.webhookSubscriptions.edges.forEach(who => {
+      console.log("webhook");
+      whData.webhookSubscriptions.edges.forEach((who) => {
         whDelete({
           variables: {
-            id: who.node.id
-          }
-        })
+            id: who.node.id,
+          },
+        });
       });
 
       whInstall({
         variables: {
           webhookSubscription: {
-            callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale"
-          }
-        }
-      }).then(resp => console.log(resp));
+            callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale",
+          },
+        },
+      }).then((resp) => console.log(resp));
     }
 
     if (
-      !appLoading &&
-      !appError &&
-      appData &&
+      !installing &&
       !jsLoading &&
       !jsError &&
       jsData &&
-      appData?.app?.installation?.activeSubscriptions.length > 0 &&
       (jsData.scriptTags.edges.length === 0 ||
         jsData.scriptTags.edges.length > 2)
     ) {
-      console.log(jsData.scriptTags.edges);
-      jsData.scriptTags.edges.forEach((scri) => {
-        console.log(scri.node);
-        jsDelete({
-          variables: {
-            id: scri.node.id,
-          },
-        });
-      });
-
-      jsInstall({
-        variables: {
-          input: {
-            src:
-              "https://acromatico-development.github.io/mandatum-app/build/mandatum.js",
-            displayScope: "ALL",
-          },
-        },
-      });
-      jsInstall({
-        variables: {
-          input: {
-            src:
-              "https://cdn.shopify.com/s/shopify/option_selection.js?20cf2ffc74856c1f49a46f6e0abc4acf6ae5bb34",
-            displayScope: "ONLINE_STORE",
-          },
-        },
-      });
+      console.log("js");
+      handleInstall();
     }
   }, [
     qResults.loading,
@@ -398,7 +411,8 @@ const Index = () => {
     jsLoading,
     whLoading,
     whError,
-    whData
+    whData,
+    installing
   ]);
 
   if (error || appError) {

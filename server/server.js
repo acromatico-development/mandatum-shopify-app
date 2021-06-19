@@ -425,10 +425,10 @@ app.prepare().then(async () => {
     try {
       if (mandatumAttribute) {
         const discount = parseFloat(body.total_discounts);
-        const mandatumCharge = discount / 2;
+        const mandatumCharge = discount;
         const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
         const client = createClient(shop, offlineSession.accessToken);
-        let amount = mandatumCharge;
+        let amount = mandatumCharge * 0.02;
 
         const appData = await client.query({
           query: APP_DATA,
@@ -442,7 +442,6 @@ app.prepare().then(async () => {
           appData.data.app.installation.activeSubscriptions[0].lineItems[0].id;
 
         if (body.currency !== "USD") {
-          amount = 10;
 
           // let toUSD = await fetch(
           //   `https://openexchangerates.org/api/convert/${mandatumCharge}/${body.currency}/USD?app_id=c5448ef8ab1a4083826561960b4f51cd`
@@ -459,7 +458,7 @@ app.prepare().then(async () => {
               amount: `${amount}`,
               currencyCode: "USD",
             },
-            description: `50% of given dicount for order ${body.name}`,
+            description: `2% of the amount discounted for order ${body.name}`,
           },
         });
 
