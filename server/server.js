@@ -12,6 +12,8 @@ import bodyParser from "koa-bodyparser";
 import mongoose from "mongoose";
 import { createClient } from "./handlers/client";
 import { gql } from "@apollo/client";
+import sgMail from '@sendgrid/mail';
+
 import {
   CREATE_TOKEN,
   GET_TOKENS,
@@ -20,6 +22,7 @@ import {
 } from "../helpers/queries";
 
 dotenv.config();
+sgMail.setApiKey(process.env.SGKEY);
 
 const port = parseInt(process.env.PORT, 10) || 8081;
 const dev = process.env.NODE_ENV !== "production";
@@ -250,7 +253,7 @@ app.prepare().then(async () => {
         id: producto.id,
         isMandatum,
         title: isMandatum ? producto.title : undefined,
-        descuento: isMandatum ? producto.descuento.value : undefined,
+        descuento: isMandatum ? parseFloat(producto.descuento.value) / 2 : undefined,
         dias: isMandatum ? producto.dias.value : undefined,
         storeFrontToken,
       };
@@ -366,7 +369,7 @@ app.prepare().then(async () => {
         variables: {
           inicio,
           fin,
-          discount: discount / 100,
+          discount: (discount / 2) / 100,
           productId,
           productTitle: `Mandatum - ${
             productData.title
@@ -415,6 +418,97 @@ app.prepare().then(async () => {
     }
   });
 
+  router.post("/deleteCustomer", bodyParser(), async (ctx) => {
+    const body = ctx.request.body;
+
+    const message = {
+      to: 'jeisson@mandatum.co',
+      from: 'mandatum@em5614.acromatico.dev', // Use the email address or domain you verified above
+      subject: 'Customer Delition Request',
+      text: 'A customer has requested the delition of his profile from your plataform',
+      html: `
+        <h1>A customer has requested the delition of his/her profile.</h1>
+        <p>Delete before 30 natural days, the client requesting this is the next one:</p>
+        <p>Shop: ${body.shop_domain}</p>
+        <p>Customer:</p>
+        <ul>
+          <li>Email: ${body.customer.email}</li>
+          <li>Phone: ${body.customer.phone}</li>
+        </ul>
+      `,
+    };
+
+    try {
+      const response = await sgMail.send(message);
+
+      ctx.status = 200;
+      ctx.body = response;
+    } catch (err) {
+      console.log(err);
+      ctx.status = 200;
+      ctx.body = { error: true, message: err?.message };
+    }
+  });
+
+  router.post("/deleteShop", bodyParser(), async (ctx) => {
+    const body = ctx.request.body;
+
+    const message = {
+      to: 'jeisson@mandatum.co',
+      from: 'mandatum@em5614.acromatico.dev', // Use the email address or domain you verified above
+      subject: 'Shop Delition Request',
+      text: 'A shop has requested the delition of his profile from your plataform',
+      html: `
+        <h1>A shop has requested the delition of its profile.</h1>
+        <p>Delete before 48 hours, the shop requesting this is the next one:</p>
+        <p>Shop: ${body.shop_domain}</p>
+      `,
+    };
+
+    try {
+      const response = await sgMail.send(message);
+
+      ctx.status = 200;
+      ctx.body = response;
+    } catch (err) {
+      console.log(err);
+      ctx.status = 200;
+      ctx.body = { error: true, message: err?.message };
+    }
+  });
+
+  router.post("/customerInfo", bodyParser(), async (ctx) => {
+    const body = ctx.request.body;
+
+    const message = {
+      to: 'jeisson@mandatum.co',
+      from: 'mandatum@em5614.acromatico.dev', // Use the email address or domain you verified above
+      subject: 'Customer Info Request',
+      text: 'A customer has requested the information of his profile from your plataform',
+      html: `
+        <h1>A customer has requested the information of his/her profile.</h1>
+        <p>The customer requesting informaion is the next one:</p>
+        <p>Shop: ${body.shop_domain}</p>
+        <p>Customer:</p>
+        <ul>
+          <li>Email: ${body.customer.email}</li>
+          <li>Phone: ${body.customer.phone}</li>
+        </ul>
+      `,
+    };
+
+    try {
+      const response = await sgMail.send(message);
+
+      ctx.status = 200;
+      ctx.body = response;
+    } catch (err) {
+      console.log(err);
+      ctx.status = 200;
+      ctx.body = { error: true, message: err?.message };
+    }
+  });
+
   router.post("/sale", bodyParser(), async (ctx) => {
     const body = ctx.request.body;
     const mandatumAttribute = body.note_attributes.find(
@@ -424,8 +518,13 @@ app.prepare().then(async () => {
 
     try {
       if (mandatumAttribute) {
-        const discount = parseFloat(body.total_discounts);
-        const mandatumCharge = discount;
+        const mandateProduct = body.line_items.find(linea => {
+          const hasPropertie = linea.properties.find(proper => proper.name === "Mandatum Discount");
+
+          return hasPropertie ? true : false;
+        });
+        const mandatumCharge = parseFloat(mandateProduct.price);
+        const exchangeRate = parseFloat(body.total_price) / parseFloat(body.total_price_usd);
         const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
         const client = createClient(shop, offlineSession.accessToken);
         let amount = mandatumCharge * 0.02;
@@ -442,7 +541,7 @@ app.prepare().then(async () => {
           appData.data.app.installation.activeSubscriptions[0].lineItems[0].id;
 
         if (body.currency !== "USD") {
-
+          amount = mandatumCharge * exchangeRate * 0.02;
           // let toUSD = await fetch(
           //   `https://openexchangerates.org/api/convert/${mandatumCharge}/${body.currency}/USD?app_id=c5448ef8ab1a4083826561960b4f51cd`
           // ).then((jso) => jso.json());
@@ -458,7 +557,7 @@ app.prepare().then(async () => {
               amount: `${amount}`,
               currencyCode: "USD",
             },
-            description: `2% of the amount discounted for order ${body.name}`,
+            description: `2% of the total price in mandate products for order ${body.name}`,
           },
         });
 
