@@ -191,9 +191,41 @@ app.prepare().then(async () => {
       const getProductInfo = await client.query({
         query: gql`
           query Product($id: ID!) {
+            shop {
+              currencyCode
+            }
             product(id: $id) {
               id
+              createdAt
+              updatedAt
+              description
+              handle
+              productType
               title
+              vendor
+              publishedAt
+              onlineStoreUrl
+              options {
+                name
+                values
+              }
+              images(first: 2) {
+                edges {
+                  node {
+                    id
+                    src
+                  }
+                }
+              }
+              variants(first: 100) {
+                edges {
+                  node {
+                    id
+                    title
+                    price
+                  }
+                }
+              }
               tags
               descuento: privateMetafield(
                 key: "descuento"
@@ -217,45 +249,19 @@ app.prepare().then(async () => {
 
       console.log("Product Info", getProductInfo);
 
-      const producto = getProductInfo.data.product;
+      const producto = getProductInfo.data;
 
-      if (producto.tags.includes("mandatum")) {
+      if (producto.product.tags.includes("mandatum")) {
         isMandatum = true;
-
-        const getTokens = await client.query({
-          query: GET_TOKENS,
-        });
-
-        console.log(getTokens.data.shop.storefrontAccessTokens.edges[0]);
-
-        if (getTokens.data.shop.storefrontAccessTokens.edges.length > 0) {
-          storeFrontToken =
-            getTokens.data.shop.storefrontAccessTokens.edges[0].node;
-        } else {
-          const createSFToken = await client.mutate({
-            mutation: CREATE_TOKEN,
-            variables: {
-              input: {
-                title: `Mandatum App - ${new Date().toLocaleString("es-MX")}`,
-              },
-            },
-          });
-
-          storeFrontToken =
-            createSFToken.data.storefrontAccessTokenCreate
-              .storefrontAccessToken;
-        }
       }
 
-      console.log(storeFrontToken);
-
       ctx.body = {
-        id: producto.id,
+        id: producto.product.id,
         isMandatum,
-        title: isMandatum ? producto.title : undefined,
-        descuento: isMandatum ? parseFloat(producto.descuento.value) / 2 : undefined,
-        dias: isMandatum ? producto.dias.value : undefined,
-        storeFrontToken,
+        title: isMandatum ? producto.product.title : undefined,
+        descuento: isMandatum ? parseFloat(producto.product.descuento.value) / 2 : undefined,
+        dias: isMandatum ? producto.product.dias.value : undefined,
+        newProduct: producto
       };
     } catch (err) {
       console.log(err);
@@ -385,6 +391,55 @@ app.prepare().then(async () => {
       ctx.body = error.message;
     }
   });
+
+  router.post("/pay", bodyParser(), async (ctx) => {
+    const shop = ctx.query.shop;
+    const { lineItems, customAttributes, shippingLine } = ctx.request.body;
+
+    try {
+      const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
+      if (!offlineSession) {
+        throw new Error("Shop is not authenticated");
+      }
+
+      if (!shop || !lineItems || !customAttributes || !shippingLine) {
+        throw new Error("Missing Parameter");
+      }
+
+      const client = createClient(shop, offlineSession.accessToken);
+
+      const dOrder = await client.mutate({
+        mutation: gql`
+          mutation draftOrderCreate($input: DraftOrderInput!) {
+            draftOrderCreate(input: $input) {
+              draftOrder {
+                id
+                invoiceUrl
+              }
+              userErrors {
+                field
+                message
+              }
+            }
+          }
+        `,
+        variables: {
+          input: {
+            lineItems,
+            customAttributes
+          }
+        }
+      });
+
+      console.log("Draft Order", dOrder.data.draftOrderCreate);
+
+      ctx.body = dOrder.data.draftOrderCreate;
+    } catch(error) {
+      console.error(error);
+      ctx.response.status = 500;
+      ctx.body = error.message;
+    }
+  })
 
   router.get("/offlineLogin", async (ctx) => {
     const shop = ctx.query.shop;
