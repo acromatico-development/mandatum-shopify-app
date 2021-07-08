@@ -382,8 +382,8 @@ const Index = () => {
       whInstall({
         variables: {
           webhookSubscription: {
-            // callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale",
-            callbackUrl: "https://stage-dot-mandatum-app.uc.r.appspot.com/sale"
+            callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale",
+            // callbackUrl: "https://stage-dot-mandatum-app.uc.r.appspot.com/sale"
           },
         },
       }).then((resp) => console.log(resp));

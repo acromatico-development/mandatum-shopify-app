@@ -131,34 +131,11 @@ export const JS_QUERY = gql`
   }
 `;
 
-export const WEBHOOK_QUERY = gql`
-  query webhookSubscriptions {
-    webhookSubscriptions(
-      first: 1
-      callbackUrl: "https://stage-dot-mandatum-app.uc.r.appspot.com/sale"
-    ){
-      edges {
-        node {
-          id
-          createdAt
-          topic
-          endpoint {
-            __typename
-            ... on WebhookHttpEndpoint {
-              callbackUrl
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
 // export const WEBHOOK_QUERY = gql`
 //   query webhookSubscriptions {
 //     webhookSubscriptions(
 //       first: 1
-//       callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale"
+//       callbackUrl: "https://stage-dot-mandatum-app.uc.r.appspot.com/sale"
 //     ){
 //       edges {
 //         node {
@@ -176,6 +153,29 @@ export const WEBHOOK_QUERY = gql`
 //     }
 //   }
 // `;
+
+export const WEBHOOK_QUERY = gql`
+  query webhookSubscriptions {
+    webhookSubscriptions(
+      first: 1
+      callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale"
+    ){
+      edges {
+        node {
+          id
+          createdAt
+          topic
+          endpoint {
+            __typename
+            ... on WebhookHttpEndpoint {
+              callbackUrl
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 export const DELETE_APP = gql`
   mutation appSubscriptionCancel($id: ID!) {

@@ -221,6 +221,7 @@ app.prepare().then(async () => {
                 edges {
                   node {
                     id
+                    availableForSale
                     title
                     price
                   }
@@ -431,7 +432,8 @@ app.prepare().then(async () => {
         }
       });
 
-      console.log("Draft Order", dOrder.data.draftOrderCreate);
+      console.log("Draft Order", dOrder.data.draftOrderCreate.draftOrder);
+      console.log("Draft Errors", dOrder.data.draftOrderCreate.userErrors);
 
       ctx.body = dOrder.data.draftOrderCreate;
     } catch(error) {
