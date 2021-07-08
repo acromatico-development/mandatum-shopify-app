@@ -7,6 +7,9 @@ node_modules
 # Test coverage directory
 coverage
 
+dev_app.yaml
+prod_app.yaml
+
 # Ignore Apple macOS Desktop Services Store
 .DS_Store
 
@@ -19,3 +22,4 @@ config/tunnel.pid
 
 # next build output
 .next/
+
