@@ -215,6 +215,29 @@ export const DELETE_WEBHOOK = gql`
   }
 `
 
+export const INITIAL_PRODUCTS = gql`
+  query InitialProducts {
+    products(first: 10, query: "-tag:mandatum") {
+      edges {
+        node {
+          id
+          featuredImage {
+            transformedSrc(maxWidth: 300)
+          }
+          priceRangeV2 {
+            maxVariantPrice {
+              amount
+              currencyCode
+            }
+          }
+          title
+          description
+        }
+      }
+    }
+  }
+`
+
 export const MANDATE_PRODUCTS = gql`
   query MandateProducts {
     products(first: 100, query: "tag:mandatum") {

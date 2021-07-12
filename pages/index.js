@@ -37,6 +37,7 @@ import {
   WEBHOOK_QUERY,
   DELETE_WEBHOOK,
   WEBHOOK_INSTALL,
+  INITIAL_PRODUCTS,
 } from "../helpers/queries";
 
 const Index = () => {
@@ -45,6 +46,9 @@ const Index = () => {
 
   const { data, loading, error, refetch } = useQuery(MANDATE_PRODUCTS, {
     fetchPolicy: "no-cache",
+  });
+  const { data: productData, loading: productLoading, error: productError, refetch: productRefetch } = useQuery(INITIAL_PRODUCTS, {
+    fetchPolicy: "no-cache"
   });
   const { data: appData, loading: appLoading, error: appError } = useQuery(
     APP_DATA,
@@ -308,6 +312,7 @@ const Index = () => {
   const onQueryClear = useCallback(async () => {
     setSearchValue("");
     setSelectedProduct([]);
+    setQueryData([]);
   }, [searchValue]);
 
   const handleProductClick = useCallback(
@@ -353,6 +358,14 @@ const Index = () => {
   }, [jsData]);
 
   useEffect(() => {
+    if(!productLoading && !productError && productData && queryData.length === 0){
+      console.log("initial products", productData);
+      const newData = productData.products.edges.map((resp) => resp.node);
+      setQueryData(newData);
+    }
+  }, [productLoading, productError, productData, queryData]);
+
+  useEffect(() => {
     if (!qResults.loading && !qResults.error && qResults.data) {
       const newData = qResults.data.products.edges.map((resp) => resp.node);
       setQueryData(newData);
@@ -361,6 +374,7 @@ const Index = () => {
     if (!appLoading && !appError && appData) {
       console.log("app");
       console.log(appData);
+      
     }
 
     if (
@@ -600,7 +614,7 @@ const Index = () => {
           {searchValue.length >= 4 &&
             queryData.length === 0 &&
             !qResults.loading && <p>Products not found</p>}
-          {searchValue.length >= 4 && queryData.length > 0 && (
+          {queryData.length > 0 && (
             <ResourceList
               loading={qResults.loading}
               resourceName={{ singular: "product", plural: "products" }}

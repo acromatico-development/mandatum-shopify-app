@@ -51,7 +51,7 @@ function MyProvider(props) {
 
 class MyApp extends App {
   render() {
-    const { Component, pageProps, shopOrigin } = this.props;
+    const { Component, pageProps, shopOrigin, shopifyHost } = this.props;
     return (
       <AppProvider
         theme={{
@@ -66,7 +66,7 @@ class MyApp extends App {
         <Provider
           config={{
             apiKey: API_KEY,
-            shopOrigin: shopOrigin,
+            host: shopifyHost,
             forceRedirect: true,
           }}
         >
@@ -80,6 +80,7 @@ class MyApp extends App {
 MyApp.getInitialProps = async ({ ctx }) => {
   return {
     shopOrigin: ctx.query.shop,
+    shopifyHost: ctx.query.host
   };
 };
 

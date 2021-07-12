@@ -568,6 +568,7 @@ app.prepare().then(async () => {
 
   router.post("/sale", bodyParser(), async (ctx) => {
     const body = ctx.request.body;
+    console.log("New Sale: ", body);
     const mandatumAttribute = body.note_attributes.find(
       (attr) => attr.name === "Mandatum Order"
     );
@@ -618,11 +619,12 @@ app.prepare().then(async () => {
           },
         });
 
-        console.log(usage.data.appUsageRecordCreate);
+        console.log("Usage Data: ", usage.data.appUsageRecordCreate.appUsageRecord);
+        console.log("Usage Errors: ", usage.data.appUsageRecordCreate.userErrors)
 
         console.log("Descuento", mandatumCharge);
       }
-      ctx.status = 201;
+      ctx.status = 200;
       ctx.body = { message: "success" };
     } catch (err) {
       ctx.status = 500;
