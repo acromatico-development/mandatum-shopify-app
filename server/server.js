@@ -60,11 +60,7 @@ async function storeCallback(session) {
 }
 
 async function loadCallback(id) {
-  console.log(typeof id);
   const loadedSession = await SessionSch.findOne({ id: id });
-  console.log("Load Session", loadedSession);
-
-  
 
   if(!loadedSession){
     return undefined;
@@ -120,6 +116,7 @@ app.prepare().then(async () => {
     createShopifyAuth({
       async afterAuth(ctx) {
         // Access token and shop available in ctx.state.shopify
+        console.log("Callback Shopify State: ", ctx.state.shopify);
         const { shop, accessToken, scope } = ctx.state.shopify;
         ACTIVE_SHOPIFY_SHOPS[shop] = scope;
 
@@ -130,6 +127,7 @@ app.prepare().then(async () => {
           topic: "APP_UNINSTALLED",
           webhookHandler: async (topic, shop, body) =>
             delete ACTIVE_SHOPIFY_SHOPS[shop],
+            
         });
 
         if (!response.success) {
@@ -160,10 +158,34 @@ app.prepare().then(async () => {
 
     // This shop hasn't been seen yet, go through OAuth to create a session
     if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
-      ctx.redirect(`/auth?shop=${shop}`);
+      ctx.redirect(`/auth?shop=${shop}&host=${ctx.query.host}`);
     } else {
       await handleRequest(ctx);
     }
+  });
+
+  router.get("/offlineLogin", async (ctx) => {
+    const shop = ctx.query.shop;
+
+    let authRoute = await Shopify.Auth.beginAuth(
+      ctx.req,
+      ctx.res,
+      shop,
+      "/auth/offlineCallback",
+      false
+    );
+    return ctx.redirect(authRoute);
+  });
+
+  router.get("/auth/offlineCallback", async (ctx) => {
+    console.log("Callback Query: ", ctx.query);
+    const shop = ctx.query.shop;
+    try {
+      await Shopify.Auth.validateAuthCallback(ctx.req, ctx.res, ctx.query);
+    } catch (error) {
+      console.error(error);
+    }
+    return ctx.redirect(`/?shop=${shop}&host=${ctx.query.host}`);
   });
 
   router.get("/isMandatum", bodyParser(), async (ctx) => {
@@ -192,6 +214,10 @@ app.prepare().then(async () => {
         query: gql`
           query Product($id: ID!) {
             shop {
+              privateMetafield(namespace: "mandatum", key: "activeWidget"){
+                key
+                value
+              }
               currencyCode
             }
             product(id: $id) {
@@ -441,34 +467,14 @@ app.prepare().then(async () => {
       ctx.response.status = 500;
       ctx.body = error.message;
     }
-  })
-
-  router.get("/offlineLogin", async (ctx) => {
-    const shop = ctx.query.shop;
-
-    let authRoute = await Shopify.Auth.beginAuth(
-      ctx.req,
-      ctx.res,
-      shop,
-      "/auth/offlineCallback",
-      false
-    );
-    return ctx.redirect(authRoute);
-  });
-
-  router.get("/auth/offlineCallback", async (ctx) => {
-    const shop = ctx.query.shop;
-    try {
-      await Shopify.Auth.validateAuthCallback(ctx.req, ctx.res, ctx.query);
-    } catch (error) {
-      console.error(error);
-    }
-    return ctx.redirect(`/?shop=${shop}`);
   });
 
   router.post("/webhooks", async (ctx) => {
+    const shop = ctx.request.header['x-shopify-shop-domain'];
     try {
       await Shopify.Webhooks.Registry.process(ctx.req, ctx.res);
+      console.log("Contexto: ", ctx)
+      await SessionSch.deleteMany({shop})
       console.log(`Webhook processed, returned status code 200`);
     } catch (error) {
       console.log(`Failed to process webhook: ${error}`);

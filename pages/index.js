@@ -38,6 +38,7 @@ import {
   DELETE_WEBHOOK,
   WEBHOOK_INSTALL,
   INITIAL_PRODUCTS,
+  WIDGET_UPDATE,
 } from "../helpers/queries";
 
 const Index = () => {
@@ -47,8 +48,13 @@ const Index = () => {
   const { data, loading, error, refetch } = useQuery(MANDATE_PRODUCTS, {
     fetchPolicy: "no-cache",
   });
-  const { data: productData, loading: productLoading, error: productError, refetch: productRefetch } = useQuery(INITIAL_PRODUCTS, {
-    fetchPolicy: "no-cache"
+  const {
+    data: productData,
+    loading: productLoading,
+    error: productError,
+    refetch: productRefetch,
+  } = useQuery(INITIAL_PRODUCTS, {
+    fetchPolicy: "no-cache",
   });
   const { data: appData, loading: appLoading, error: appError } = useQuery(
     APP_DATA,
@@ -56,12 +62,14 @@ const Index = () => {
       fetchPolicy: "no-cache",
     }
   );
-  const { data: jsData, loading: jsLoading, error: jsError, refetch: jsRefetch } = useQuery(
-    JS_QUERY,
-    {
-      fetchPolicy: "no-cache",
-    }
-  );
+  const {
+    data: jsData,
+    loading: jsLoading,
+    error: jsError,
+    refetch: jsRefetch,
+  } = useQuery(JS_QUERY, {
+    fetchPolicy: "no-cache",
+  });
   const { data: whData, loading: whLoading, error: whError } = useQuery(
     WEBHOOK_QUERY,
     {
@@ -104,10 +112,13 @@ const Index = () => {
   const [updateMeta] = useMutation(UPDATE_METAFIELDS, {
     fetchPolicy: "no-cache",
   });
+  const [updateWidget] = useMutation(WIDGET_UPDATE, {
+    fetchPolicy: "no-cache"
+  })
 
   const [activeModal, setActiveModal] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const [queryData, setQueryData] = useState([]);
+  const [queryData, setQueryData] = useState();
   const [selectedProduct, setSelectedProduct] = useState([]);
   const [modalProduct, setModalProduct] = useState({
     active: false,
@@ -124,6 +135,7 @@ const Index = () => {
     delivery: "",
   });
   const [installing, setInstalling] = useState(false);
+  const [widgetStatus, setWidgetStatus] = useState(false);
 
   const handleSubscribe = useCallback(async () => {
     const installData = await appInstall({
@@ -162,8 +174,58 @@ const Index = () => {
       });
     });
 
+    data.products.edges.forEach(pro => {
+      const id = pro.node.id;
+      deleteMeta({
+        variables: {
+          id,
+          key: "porcentaje",
+        },
+      });
+      deleteMeta({
+        variables: {
+          id,
+          key: "descuento",
+        },
+      });
+      deleteMeta({
+        variables: {
+          id,
+          key: "donacion",
+        },
+      });
+      deleteMeta({
+        variables: {
+          id,
+          key: "dias_entrega",
+        },
+      });
+      deleteTags({
+        variables: {
+          id,
+        },
+      });
+    });
+
     redirect.dispatch(Redirect.Action.APP, "/");
-  }, [appData, jsData, whData]);
+  }, [appData, jsData, whData, data]);
+
+  const toggleWidget = useCallback(async () => {
+    const currnet = !widgetStatus;
+    updateWidget({
+      variables: {
+        input: {
+          namespace: "mandatum",
+          key: "activeWidget",
+          valueInput: {
+            value: currnet ? "true" : "false",
+            valueType: "STRING"
+          }
+        }
+      }
+    });
+    setWidgetStatus(currnet);
+  }, [appData, widgetStatus]);
 
   const handleRefetch = useCallback(async () => {
     setGeneralLoading(true);
@@ -200,7 +262,7 @@ const Index = () => {
 
       setActiveModal(false);
       setSearchValue("");
-      setQueryData([]);
+      setQueryData(undefined);
       setSelectedProduct([]);
 
       setTimeout(() => {
@@ -312,7 +374,7 @@ const Index = () => {
   const onQueryClear = useCallback(async () => {
     setSearchValue("");
     setSelectedProduct([]);
-    setQueryData([]);
+    setQueryData(undefined);
   }, [searchValue]);
 
   const handleProductClick = useCallback(
@@ -324,7 +386,7 @@ const Index = () => {
 
   const handleInstall = useCallback(async () => {
     setInstalling(true);
-    for (let i = 0; i <= jsData.scriptTags.edges.length - 1; i++){
+    for (let i = 0; i <= jsData.scriptTags.edges.length - 1; i++) {
       await jsDelete({
         variables: {
           id: jsData.scriptTags.edges[i].node.id,
@@ -358,23 +420,52 @@ const Index = () => {
   }, [jsData]);
 
   useEffect(() => {
-    if(!productLoading && !productError && productData && queryData.length === 0){
+    // @ts-ignore
+    if (
+      appData?.app?.installation?.activeSubscriptions.length > 0 &&
+      !productLoading &&
+      !productError &&
+      productData &&
+      !queryData
+    ) {
       console.log("initial products", productData);
       const newData = productData.products.edges.map((resp) => resp.node);
       setQueryData(newData);
     }
-  }, [productLoading, productError, productData, queryData]);
+  }, [productLoading, productError, productData, queryData, appData]);
 
   useEffect(() => {
+    if(appData?.shop?.privateMetafield?.value){
+      const curr = appData?.shop?.privateMetafield?.value === "false" ? false : true;
+      setWidgetStatus(curr);
+    }
+  },[appData])
+
+  useEffect(() => {
+    console.log(appData);
     if (!qResults.loading && !qResults.error && qResults.data) {
       const newData = qResults.data.products.edges.map((resp) => resp.node);
       setQueryData(newData);
     }
 
-    if (!appLoading && !appError && appData) {
+    if (!appLoading && !appError && appData && whData && whData.webhookSubscriptions.edges.length === 0) {
       console.log("app");
-      console.log(appData);
       
+      console.log("ID", appData.shop.id)
+
+      updateWidget({
+        variables: {
+          input: {
+            
+            namespace: "mandatum",
+            key: "activeWidget",
+            valueInput: {
+              value: "false",
+              valueType: "STRING"
+            }
+          }
+        }
+      });
     }
 
     if (
@@ -427,7 +518,7 @@ const Index = () => {
     whLoading,
     whError,
     whData,
-    installing
+    installing,
   ]);
 
   if (error || appError) {
@@ -480,116 +571,121 @@ const Index = () => {
       ]}
     >
       <Card title="Mandate Products" sectioned>
-        {data.products.edges.filter(
-          (prod) =>
-            prod.node.privateMetafields.edges.find(
-              (met) => met.node.key === "descuento"
-            )?.node
-        ).length === 0 ? (
-          <TextContainer>
-            {loading || generalLoading ? (
-              <Stack alignment="center" vertical={true}>
-                <Subheading element="h3">Loading...</Subheading>
-              </Stack>
-            ) : (
-              <Stack alignment="center" vertical={true}>
-                <Subheading element="h3">No Products</Subheading>
-                <Button primary onClick={() => setActiveModal(true)}>
-                  Add Products
-                </Button>
-              </Stack>
-            )}
-          </TextContainer>
-        ) : (
-          <ResourceList
-            loading={loading || generalLoading}
-            resourceName={{ singular: "product", plural: "products" }}
-            items={data.products.edges
-              .filter(
-                (prod) =>
-                  prod.node.privateMetafields.edges.find(
-                    (met) => met.node.key === "descuento"
-                  )?.node
-              )
-              .map((prod) => {
-                return {
-                  id: prod.node.id,
-                  title: prod.node.title,
-                  description: prod.node.description,
-                  featuredImage: prod.node.featuredImage?.transformedSrc,
-                  price: `${prod.node.priceRangeV2.maxVariantPrice.amount} ${prod.node.priceRangeV2.maxVariantPrice.currencyCode}`,
-                  discount: prod.node.privateMetafields.edges.find(
-                    (met) => met.node.key === "descuento"
-                  )?.node.value,
-                  days: prod.node.privateMetafields.edges.find(
-                    (met) => met.node.key === "dias_entrega"
-                  )?.node.value,
-                };
-              })}
-            renderItem={(item) => {
-              const {
-                title,
-                description,
-                featuredImage,
-                id,
-                price,
-                discount,
-                days,
-              } = item;
+        <Card.Section title={`Storefront Widget Status: ${widgetStatus ? "Active" : "Disabled"}`}>
+          <Button destructive={widgetStatus} primary={!widgetStatus} onClick={toggleWidget}>{widgetStatus ? "Disable" : "Enable"}</Button>
+        </Card.Section>
+        <Card.Section title="Products">
+          {data.products.edges.filter(
+            (prod) =>
+              prod.node.privateMetafields.edges.find(
+                (met) => met.node.key === "descuento"
+              )?.node
+          ).length === 0 ? (
+            <TextContainer>
+              {loading || generalLoading ? (
+                <Stack alignment="center" vertical={true}>
+                  <Subheading element="h3">Loading...</Subheading>
+                </Stack>
+              ) : (
+                <Stack alignment="center" vertical={true}>
+                  <Subheading element="h3">No Products</Subheading>
+                  <Button primary onClick={() => setActiveModal(true)}>
+                    Add Products
+                  </Button>
+                </Stack>
+              )}
+            </TextContainer>
+          ) : (
+            <ResourceList
+              loading={loading || generalLoading}
+              resourceName={{ singular: "product", plural: "products" }}
+              items={data.products.edges
+                .filter(
+                  (prod) =>
+                    prod.node.privateMetafields.edges.find(
+                      (met) => met.node.key === "descuento"
+                    )?.node
+                )
+                .map((prod) => {
+                  return {
+                    id: prod.node.id,
+                    title: prod.node.title,
+                    description: prod.node.description,
+                    featuredImage: prod.node.featuredImage?.transformedSrc,
+                    price: `${prod.node.priceRangeV2.maxVariantPrice.amount} ${prod.node.priceRangeV2.maxVariantPrice.currencyCode}`,
+                    discount: prod.node.privateMetafields.edges.find(
+                      (met) => met.node.key === "descuento"
+                    )?.node.value,
+                    days: prod.node.privateMetafields.edges.find(
+                      (met) => met.node.key === "dias_entrega"
+                    )?.node.value,
+                  };
+                })}
+              renderItem={(item) => {
+                const {
+                  title,
+                  description,
+                  featuredImage,
+                  id,
+                  price,
+                  discount,
+                  days,
+                } = item;
 
-              return (
-                <ResourceItem
-                  id={id}
-                  media={
-                    <Thumbnail
-                      size="large"
-                      alt={title}
-                      source={
-                        featuredImage ||
-                        "https://cdn2.iconfinder.com/data/icons/e-commerce-line-4-1/1024/open_box4-512.png"
-                      }
-                    />
-                  }
-                  accessibilityLabel={`View details for ${title}`}
-                  onClick={() => console.log(id)}
-                  shortcutActions={[
-                    {
-                      content: "Edit",
-                      onAction: () =>
-                        setModalEdit({
-                          active: true,
-                          id,
-                          title,
-                          image: featuredImage,
-                          price,
-                          discount,
-                          delivery: days,
-                        }),
-                    },
-                    {
-                      content: "Delete",
-                      onAction: () => setModalProduct({ active: true, id }),
-                    },
-                  ]}
-                >
-                  <TextContainer>
-                    <Heading>{title}</Heading>
-                    <p>
-                      <TextStyle variation="strong">{price}</TextStyle>
-                    </p>
-                    <p>
-                      {description.length > 200
-                        ? description.substr(0, 200) + "..."
-                        : description}
-                    </p>
-                    <p>Allowed Discount: {discount}%</p>
-                  </TextContainer>
-                  <p>Delivery Time: {days} Days</p>
-                </ResourceItem>
-              );
-            }}
-          />
-        )}
+                return (
+                  <ResourceItem
+                    id={id}
+                    media={
+                      <Thumbnail
+                        size="large"
+                        alt={title}
+                        source={
+                          featuredImage ||
+                          "https://cdn2.iconfinder.com/data/icons/e-commerce-line-4-1/1024/open_box4-512.png"
+                        }
+                      />
+                    }
+                    accessibilityLabel={`View details for ${title}`}
+                    onClick={() => console.log(id)}
+                    shortcutActions={[
+                      {
+                        content: "Edit",
+                        onAction: () =>
+                          setModalEdit({
+                            active: true,
+                            id,
+                            title,
+                            image: featuredImage,
+                            price,
+                            discount,
+                            delivery: days,
+                          }),
+                      },
+                      {
+                        content: "Delete",
+                        onAction: () => setModalProduct({ active: true, id }),
+                      },
+                    ]}
+                  >
+                    <TextContainer>
+                      <Heading>{title}</Heading>
+                      <p>
+                        <TextStyle variation="strong">{price}</TextStyle>
+                      </p>
+                      <p>
+                        {description.length > 200
+                          ? description.substr(0, 200) + "..."
+                          : description}
+                      </p>
+                      <p>Allowed Discount: {discount}%</p>
+                    </TextContainer>
+                    <p>Delivery Time: {days} Days</p>
+                  </ResourceItem>
+                );
+              }}
+            />
+          )}
+        </Card.Section>
       </Card>
       <Modal
         open={activeModal}
@@ -612,9 +708,9 @@ const Index = () => {
         </Modal.Section>
         <Modal.Section>
           {searchValue.length >= 4 &&
-            queryData.length === 0 &&
+            (!queryData || queryData?.length === 0) &&
             !qResults.loading && <p>Products not found</p>}
-          {queryData.length > 0 && (
+          {queryData && queryData.length > 0 && (
             <ResourceList
               loading={qResults.loading}
               resourceName={{ singular: "product", plural: "products" }}

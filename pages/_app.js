@@ -51,6 +51,7 @@ function MyProvider(props) {
 
 class MyApp extends App {
   render() {
+    console.log("Context: ", this.props)
     const { Component, pageProps, shopOrigin, shopifyHost } = this.props;
     return (
       <AppProvider
@@ -66,7 +67,7 @@ class MyApp extends App {
         <Provider
           config={{
             apiKey: API_KEY,
-            host: shopifyHost,
+            host: Buffer.from(`${shopOrigin}/admin`).toString("base64"),
             forceRedirect: true,
           }}
         >

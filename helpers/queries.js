@@ -3,7 +3,12 @@ import { gql } from "apollo-boost";
 export const APP_DATA = gql`
   query AppData {
     shop {
+      id
       url
+      privateMetafield(namespace: "mandatum", key: "activeWidget"){
+        key
+        value
+      }
     }
     app {
       installation {
@@ -35,6 +40,20 @@ export const APP_DATA = gql`
     }
   }
 `;
+
+export const WIDGET_UPDATE = gql`
+  mutation WidgetUpdate($input: PrivateMetafieldInput!) {
+    privateMetafieldUpsert(input: $input) {
+      privateMetafield {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`
 
 export const APP_INSTALL = gql`
   mutation AppInstall($return: URL!) {
