@@ -1,0 +1,31 @@
+.grid-container {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
+  justify-items: center;
+}
+
+.grid-container .grid-element {
+  padding: 30px;
+}
+
+.grid-container .grid-element:hover {
+  cursor: pointer;
+}
+
+.grid-container .grid-element svg {
+  width: 200px;
+  max-width: 100%;
+}
+
+.grid-container .grid-element h3 {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.grid-container .grid-element .overview {
+  font-size: 1.8rem;
+  text-align: center;
+}

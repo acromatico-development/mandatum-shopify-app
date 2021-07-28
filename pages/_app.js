@@ -1,12 +1,14 @@
 import ApolloClient from "apollo-boost";
 import { ApolloProvider } from "react-apollo";
-import App from "next/app";
 import { AppProvider } from "@shopify/polaris";
 import { Provider, useAppBridge } from "@shopify/app-bridge-react";
 import { authenticatedFetch } from "@shopify/app-bridge-utils";
 import { Redirect } from "@shopify/app-bridge/actions";
 import "@shopify/polaris/dist/styles.css";
 import translations from "@shopify/polaris/locales/es.json";
+import { useEffect, useState } from "react";
+
+import "../styles/main.css";
 
 function userLoggedInFetch(app) {
   const fetchFunction = authenticatedFetch(app);
@@ -49,36 +51,43 @@ function MyProvider(props) {
   );
 }
 
-class MyApp extends App {
-  render() {
-    console.log("Context: ", this.props)
-    const { Component, pageProps, shopOrigin, shopifyHost } = this.props;
-    return (
-      <AppProvider
-        theme={{
-          colors: {
-            critical: "#cc0e3a",
-            highlight: "#492fb1",
-            primary: "#492fb1"
-          }
-        }}
-        i18n={translations}
-      >
-        <Provider
-          config={{
-            apiKey: API_KEY,
-            host: Buffer.from(`${shopOrigin}/admin`).toString("base64"),
-            forceRedirect: true,
-          }}
-        >
-          <MyProvider Component={Component} {...pageProps} />
-        </Provider>
-      </AppProvider>
-    );
-  }
-}
+function MyApp(props){
+  const [context, setContexto] = useState();
 
-MyApp.getInitialProps = async ({ ctx }) => {
+  useEffect(() => {
+    setContexto(props);
+  }, []);
+
+  if(!context){
+    return <p>Loading...</p>
+  }
+
+  return (
+    <AppProvider
+      theme={{
+        colors: {
+          critical: "#cc0e3a",
+          highlight: "#492fb1",
+          primary: "#492fb1",
+        },
+      }}
+      i18n={translations}
+    >
+      <Provider
+        config={{
+          apiKey: API_KEY,
+          host: Buffer.from(`${context.shopOrigin}/admin`).toString("base64"),
+          forceRedirect:true
+        }}
+      >
+        <MyProvider Component={context.Component} {...context.pageProps} />
+      </Provider>
+    </AppProvider>
+  );
+};
+
+MyApp.getInitialProps = async ({ ctx, ...data }) => {
+  // console.log("Final context", data)
   return {
     shopOrigin: ctx.query.shop,
     shopifyHost: ctx.query.host

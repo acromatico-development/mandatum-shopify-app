@@ -568,6 +568,11 @@ const Index = () => {
           disabled: false,
           onAction: deleteApp,
         },
+        {
+          content: "Nav Test",
+          disabled: false,
+          onAction: () => redirect.dispatch(Redirect.Action.APP, "/impact")
+        }
       ]}
     >
       <Card title="Mandate Products" sectioned>

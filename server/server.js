@@ -14,6 +14,8 @@ import { createClient } from "./handlers/client";
 import { gql } from "@apollo/client";
 import sgMail from '@sendgrid/mail';
 
+import Impact from "../schemas/impact";
+
 import {
   CREATE_TOKEN,
   GET_TOKENS,
@@ -164,6 +166,39 @@ app.prepare().then(async () => {
     }
   });
 
+  router.get("/impact", async (ctx) => {
+    const shop = ctx.query.shop;
+
+    // This shop hasn't been seen yet, go through OAuth to create a session
+    if (ACTIVE_SHOPIFY_SHOPS[shop] === undefined) {
+      ctx.redirect(`/auth?shop=${shop}&host=${ctx.query.host}`);
+    } else {
+      await handleRequest(ctx);
+    }
+  });
+
+  router.get("/getImpact", async (ctx) => {
+    const shop = ctx.query.shop;
+
+    try {
+      const impactData = await Impact.findOne({ shop });
+
+      ctx.status = 200;
+      ctx.body = { message: "success", impactData: impactData ? impactData : {
+        id: null,
+        shop,
+        orders: 0,
+        donations: 0,
+        carbon: 0,
+        land: 0
+      }};
+    } catch(err){
+      ctx.status = 500;
+      ctx.body = { message: err?.message };
+      console.log(err);
+    }
+  });
+
   router.get("/offlineLogin", async (ctx) => {
     const shop = ctx.query.shop;
 
@@ -291,6 +326,51 @@ app.prepare().then(async () => {
         newProduct: producto
       };
     } catch (err) {
+      console.log(err);
+      ctx.response.status = 500;
+      ctx.body = err.message;
+    }
+  });
+
+  router.get("/checkoutData", bodyParser(), async (ctx) => {
+    const shop = ctx.query.shop;
+
+    try {
+      const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
+
+      if (!offlineSession) {
+        throw new Error("Shop is not authenticated");
+      }
+
+      if (!shop) {
+        throw new Error("Missing Parameter");
+      }
+
+      console.log(shop);
+      console.log(offlineSession);
+
+      const client = createClient(shop, offlineSession.accessToken);
+
+      const getShopData = await client.query({
+        query: gql`
+          query {
+            shop {
+              name
+              privateMetafield(namespace: "mandatum", key: "activeWidget"){
+                key
+                value
+              }
+              currencyCode
+            }
+          }
+        `,
+        fetchPolicy: "no-cache"
+      });
+
+      console.log(getShopData.data.shop);
+
+      ctx.body = getShopData.data.shop;
+    } catch(err){
       console.log(err);
       ctx.response.status = 500;
       ctx.body = err.message;
@@ -588,10 +668,12 @@ app.prepare().then(async () => {
           return hasPropertie ? true : false;
         });
         const mandatumCharge = parseFloat(mandateProduct.price);
+        const discountValue = parseFloat(mandateProduct.properties.find(proper => proper.name === "Mandatum Discount").value.split("%")[0]) / 100;
         const exchangeRate = parseFloat(body.total_price) / parseFloat(body.total_price_usd);
         const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
         const client = createClient(shop, offlineSession.accessToken);
         let amount = mandatumCharge * 0.02;
+        let donation = mandatumCharge * discountValue;
 
         const appData = await client.query({
           query: APP_DATA,
@@ -606,6 +688,7 @@ app.prepare().then(async () => {
 
         if (body.currency !== "USD") {
           amount = mandatumCharge * exchangeRate * 0.02;
+          donation = mandatumCharge * exchangeRate * discountValue;
           // let toUSD = await fetch(
           //   `https://openexchangerates.org/api/convert/${mandatumCharge}/${body.currency}/USD?app_id=c5448ef8ab1a4083826561960b4f51cd`
           // ).then((jso) => jso.json());
@@ -621,14 +704,42 @@ app.prepare().then(async () => {
               amount: `${amount}`,
               currencyCode: "USD",
             },
-            description: `2% of the total price in mandate products for order ${body.name}`,
+            description: `2% of mandate product in order ${body.name}`,
           },
+          fetchPolicy: "no-cache"
+        });
+
+        const donationCharge = await client.mutate({
+          mutation: RECURRING_CHARGE,
+          variables: {
+            subscriptionLineItemId: subscriptionId,
+            price: {
+              amount: `${donation}`,
+              currencyCode: "USD",
+            },
+            description: `${discountValue * 100}% donation of mandate product in order ${body.name}`,
+          }
+        });
+
+        const savedImpact = await Impact.findOneAndUpdate({ shop }, {
+          $inc: {
+            orders: 1,
+            donations: donation,
+            carbon: donation / 10,
+            land: (donation / 10) * 0.25
+          }
+        }, {
+          upsert: true,
+          new: true
         });
 
         console.log("Usage Data: ", usage.data.appUsageRecordCreate.appUsageRecord);
-        console.log("Usage Errors: ", usage.data.appUsageRecordCreate.userErrors)
+        console.log("Donation Data: ", donationCharge.data.appUsageRecordCreate.appUsageRecord);
+        console.log("Usage Errors: ", usage.data.appUsageRecordCreate.userErrors);
+        console.log("Donations Errors: ", donationCharge.data.appUsageRecordCreate.userErrors);
 
-        console.log("Descuento", mandatumCharge);
+        console.log("Descuento: ", discountValue);
+        console.log("Impact: ", savedImpact);
       }
       ctx.status = 200;
       ctx.body = { message: "success" };
