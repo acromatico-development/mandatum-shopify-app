@@ -113,8 +113,8 @@ const Index = () => {
     fetchPolicy: "no-cache",
   });
   const [updateWidget] = useMutation(WIDGET_UPDATE, {
-    fetchPolicy: "no-cache"
-  })
+    fetchPolicy: "no-cache",
+  });
 
   const [activeModal, setActiveModal] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -152,54 +152,54 @@ const Index = () => {
   const deleteApp = useCallback(async () => {
     const chargeId = appData.app.installation.activeSubscriptions[0]?.id;
 
-    const deletedApp = await appDelete({
-      variables: {
-        id: chargeId,
-      },
-    });
+    // const deletedApp = await appDelete({
+    //   variables: {
+    //     id: chargeId,
+    //   },
+    // });
 
-    jsData.scriptTags.edges.forEach((scri) => {
-      jsDelete({
-        variables: {
-          id: scri.node.id,
-        },
-      });
-    });
+    // jsData.scriptTags.edges.forEach((scri) => {
+    //   jsDelete({
+    //     variables: {
+    //       id: scri.node.id,
+    //     },
+    //   });
+    // });
 
-    whData.webhookSubscriptions.edges.forEach((who) => {
-      whDelete({
-        variables: {
-          id: who.node.id,
-        },
-      });
-    });
+    // whData.webhookSubscriptions.edges.forEach((who) => {
+    //   whDelete({
+    //     variables: {
+    //       id: who.node.id,
+    //     },
+    //   });
+    // });
 
-    data.products.edges.forEach(pro => {
+    data.products.edges.forEach((pro) => {
       const id = pro.node.id;
-      deleteMeta({
-        variables: {
-          id,
-          key: "porcentaje",
-        },
-      });
-      deleteMeta({
-        variables: {
-          id,
-          key: "descuento",
-        },
-      });
-      deleteMeta({
-        variables: {
-          id,
-          key: "donacion",
-        },
-      });
-      deleteMeta({
-        variables: {
-          id,
-          key: "dias_entrega",
-        },
-      });
+      // deleteMeta({
+      //   variables: {
+      //     id,
+      //     key: "porcentaje",
+      //   },
+      // });
+      // deleteMeta({
+      //   variables: {
+      //     id,
+      //     key: "descuento",
+      //   },
+      // });
+      // deleteMeta({
+      //   variables: {
+      //     id,
+      //     key: "donacion",
+      //   },
+      // });
+      // deleteMeta({
+      //   variables: {
+      //     id,
+      //     key: "dias_entrega",
+      //   },
+      // });
       deleteTags({
         variables: {
           id,
@@ -219,10 +219,10 @@ const Index = () => {
           key: "activeWidget",
           valueInput: {
             value: currnet ? "true" : "false",
-            valueType: "STRING"
-          }
-        }
-      }
+            valueType: "STRING",
+          },
+        },
+      },
     });
     setWidgetStatus(currnet);
   }, [appData, widgetStatus]);
@@ -435,11 +435,12 @@ const Index = () => {
   }, [productLoading, productError, productData, queryData, appData]);
 
   useEffect(() => {
-    if(appData?.shop?.privateMetafield?.value){
-      const curr = appData?.shop?.privateMetafield?.value === "false" ? false : true;
+    if (appData?.shop?.privateMetafield?.value) {
+      const curr =
+        appData?.shop?.privateMetafield?.value === "false" ? false : true;
       setWidgetStatus(curr);
     }
-  },[appData])
+  }, [appData]);
 
   useEffect(() => {
     console.log(appData);
@@ -448,23 +449,33 @@ const Index = () => {
       setQueryData(newData);
     }
 
-    if (!appLoading && !appError && appData && whData && whData.webhookSubscriptions.edges.length === 0) {
+    if (
+      data &&
+      !loading &&
+      !error &&
+      !appLoading &&
+      !appError &&
+      appData &&
+      whData &&
+      whData.webhookSubscriptions.edges.length === 0
+    ) {
       console.log("app");
-      
-      console.log("ID", appData.shop.id)
+
+      console.log("ID", appData.shop.id);
+
+      deleteApp();
 
       updateWidget({
         variables: {
           input: {
-            
             namespace: "mandatum",
             key: "activeWidget",
             valueInput: {
               value: "false",
-              valueType: "STRING"
-            }
-          }
-        }
+              valueType: "STRING",
+            },
+          },
+        },
       });
     }
 
@@ -519,6 +530,9 @@ const Index = () => {
     whError,
     whData,
     installing,
+    data,
+    loading,
+    error,
   ]);
 
   if (error || appError) {
@@ -563,21 +577,31 @@ const Index = () => {
           disabled: false,
           onAction: handleRefetch,
         },
-        {
-          content: "Delete App",
-          disabled: false,
-          onAction: deleteApp,
-        },
-        {
-          content: "Nav Test",
-          disabled: false,
-          onAction: () => redirect.dispatch(Redirect.Action.APP, "/impact")
-        }
+        // {
+        //   content: "Delete Products",
+        //   disabled: false,
+        //   onAction: deleteApp,
+        // },
+        // {
+        //   content: "Nav Test",
+        //   disabled: false,
+        //   onAction: () => redirect.dispatch(Redirect.Action.APP, "/impact")
+        // }
       ]}
     >
       <Card title="Mandate Products" sectioned>
-        <Card.Section title={`Storefront Widget Status: ${widgetStatus ? "Active" : "Disabled"}`}>
-          <Button destructive={widgetStatus} primary={!widgetStatus} onClick={toggleWidget}>{widgetStatus ? "Disable" : "Enable"}</Button>
+        <Card.Section
+          title={`Storefront Widget Status: ${
+            widgetStatus ? "Active" : "Disabled"
+          }`}
+        >
+          <Button
+            destructive={widgetStatus}
+            primary={!widgetStatus}
+            onClick={toggleWidget}
+          >
+            {widgetStatus ? "Disable" : "Enable"}
+          </Button>
         </Card.Section>
         <Card.Section title="Products">
           {data.products.edges.filter(
