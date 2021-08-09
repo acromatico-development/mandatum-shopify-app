@@ -1,0 +1,361 @@
+.mandatum-modal .color {
+  color: #541fa6;
+}
+
+.mandatum-modal li {
+  list-style: inherit;
+}
+
+.mandatum-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 100000;
+}
+
+.mandatum-modal.open {
+  display: flex;
+}
+
+.mandatum-modal ol,
+.mandatum-modal ul {
+  margin: revert;
+  padding: 0 1rem;
+}
+
+.mandatum-modal .mandatum-info-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000000;
+}
+
+.mandatum-modal .mandatum-info-modal.open {
+  display: flex;
+}
+
+.mandatum-modal .mandatum-info-modal .mandatum-info-box {
+  width: 90%;
+  max-width: 400px;
+  max-height: 90%;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px;
+  overflow: hidden;
+  padding: 20px 15px;
+}
+
+.mandatum-modal .mandatum-info-modal .mandatum-info-box svg {
+  width: 30px;
+}
+
+.mandatum-modal
+  .mandatum-info-modal
+  .mandatum-info-box
+  .mandatum-modal-buttons {
+  justify-content: center;
+  margin: 10px;
+  box-sizing: border-box;
+  width: 90%;
+}
+
+.mandatum-modal .mandatum-modal-box {
+  width: 90%;
+  max-width: 400px;
+  max-height: 90%;
+  background-color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 10px;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-modal-head {
+  width: 100%;
+  height: 80%;
+  background-color: #541fa6;
+  color: white;
+  box-sizing: border-box;
+  border-radius: 10px 10px 0 0;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-modal-head svg {
+  width: 200px;
+  max-width: 100%;
+}
+
+.mandatum-modal-intro {
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 20px;
+  margin: 0;
+}
+
+.mandatum-modal .mandatum-modal-box h3 {
+  padding: 20px;
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+}
+
+.mandatum-modal .mandatum-modal-box .selector-wrapper {
+  width: 90%;
+  max-width: 500px;
+}
+
+.mandatum-modal .mandatum-modal-box .selector-wrapper label {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.mandatum-modal .mandatum-modal-box .selector-wrapper select {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.mandatum-modal .mandatum-modal-box p {
+  padding: 0;
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+}
+
+.mandatum-modal .mandatum-modal-box h4 {
+  padding: 0;
+  text-align: center;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 10px;
+}
+
+.mandatum-modal .mandatum-modal-box img {
+  width: 35%;
+  margin-top: 10px;
+  margin-bottom: -5px;
+}
+
+.mandatum-modal .selector-wrapper {
+  width: 100%;
+}
+
+.mandatum-modal .product-price-mandatum {
+  font-weight: bold;
+}
+
+.mandatum-modal .product-price-mandatum span {
+  color: #541fa6;
+}
+
+.mandatum-modal .single-option-selector {
+  opacity: 1;
+  width: 90%;
+  padding: 10px 15px;
+  display: block;
+  border: 1px solid #541fa6;
+  margin: 0 auto;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-modal-buttons {
+  width: 50%;
+  box-sizing: border-box;
+  margin: 2rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+}
+
+.buttonMandatum {
+  width: 10%;
+  height: 15%;
+  padding: 10px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  background-color: #ffffff;
+  align-items: center;
+  color: white;
+  border: none;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-modal-buttons button[disabled] {
+  background-color: grey;
+  cursor: auto;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges {
+  display: flex;
+  flex-flow: row wrap;
+  justify-content: space-evenly;
+  margin-top: 10px;
+  position: relative;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges .info-icon {
+  position: absolute;
+  right: 10px;
+  top: 0px;
+  width: 20px;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges .info-icon:hover {
+  cursor: pointer;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges .svg-badge {
+  width: 35%;
+  position: relative;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges .svg-badge p {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  position: absolute;
+  text-align: center;
+  bottom: 17%;
+  font-weight: bold;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges .svg-badge svg {
+  width: 100%;
+}
+
+.mandatum-modal .mandatum-modal-box .mandatum-badges .svg-badge svg {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .mandatum-modal .mandatum-modal-box img {
+    width: 40%;
+    margin: 1rem auto 0;
+  }
+
+  .mandatum-modal .mandatum-modal-box {
+    width: 100%;
+    max-width: 100%;
+    min-height: 100%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 0px;
+  }
+
+  .mandatum-button {
+    padding: 0;
+  }
+
+  .mandatum-button h3 {
+    display: none;
+  }
+}
+.mandatum-card {
+  position: fixed;
+  right: 5%;
+  bottom: 2rem;
+  background-color: #4910a0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 30px;
+}
+.mandatum-modal-head {
+  display: flex;
+  align-items: center;
+  width: 216px;
+  height: 64px;
+  padding: -10px 20px 0px 20px;
+}
+
+.svg-1 {
+  margin: 0 auto;
+  display: block;
+  width: 30px;
+  max-width: 10%;
+  width: 30px;
+}
+.card {
+  margin: 0 auto; /* Added */
+  float: none; /* Added */
+  margin-bottom: 10px; /* Added */
+  justify-content: center;
+}
+.card-body {
+  align-items: center;
+  padding-top: 0px;
+  padding-left: 20px;
+  padding-bottom: 0px;
+  justify-content: center;
+}
+.card-text {
+  color: #ffffff;
+}
+
+.card-text gr {
+  color: #00ff6c;
+  font-weight: bold;
+}
+
+input[type="text"] {
+  margin: 0px;
+  padding: 0px;
+  width: 80%;
+  outline: none;
+  height: 30px;
+  border-radius: 10px;
+  text-align: center;
+  border: none;
+  top: 0;
+}
+
+input[type="text"] .some {
+  background-color: #d1d1d1;
+}
+
+.buttonIn {
+  width: 300px;
+  position: relative;
+}
+
+button {
+  color: #4910a0;
+  position: absolute;
+  font-weight: bold;
+  top: 0;
+  border-radius: 10px;
+  right: 15px;
+  z-index: 2;
+  border: none;
+  top: 0px;
+  height: 30px;
+  width: 80px;
+  cursor: pointer;
+  background-color: white;
+  transform: translateX(2px);
+}
+
+::placeholder {
+  /* Chrome, Firefox, Opera, Safari 10.1+ */
+  color: #5e6366;
+  opacity: 1; /* Firefox */
+}

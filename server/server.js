@@ -3,7 +3,7 @@ import dotenv from "dotenv";
 import "isomorphic-fetch";
 import createShopifyAuth, { verifyRequest } from "@shopify/koa-shopify-auth";
 import Shopify, { ApiVersion } from "@shopify/shopify-api";
-import { Session } from '@shopify/shopify-api/dist/auth/session';
+import { Session } from "@shopify/shopify-api/dist/auth/session";
 import Koa from "koa";
 import next from "next";
 import Router from "koa-router";
@@ -11,8 +11,10 @@ import cors from "@koa/cors";
 import bodyParser from "koa-bodyparser";
 import mongoose from "mongoose";
 import { createClient } from "./handlers/client";
+import send from "koa-send";
+
 import { gql } from "@apollo/client";
-import sgMail from '@sendgrid/mail';
+import sgMail from "@sendgrid/mail";
 
 import Impact from "../schemas/impact";
 
@@ -21,7 +23,11 @@ import {
   GET_TOKENS,
   APP_DATA,
   RECURRING_CHARGE,
+  MANDATE_PRODUCTS_TAGS,
+  DELETE_TAGS,
 } from "../helpers/queries";
+
+import mandatumAPI from "../helpers/mandatumAPI";
 
 dotenv.config();
 sgMail.setApiKey(process.env.SGKEY);
@@ -33,12 +39,14 @@ const app = next({
 });
 const handle = app.getRequestHandler();
 
-mongoose.connect(
-  "mongodb+srv://mandatum_admin:Mandatum2021*-@sessions.zov4x.mongodb.net/sessions?retryWrites=true&w=majority",
-  { useNewUrlParser: true, useUnifiedTopology: true }
-).then(resp => {
-  console.log("connected to mongo");
-});
+mongoose
+  .connect(
+    "mongodb+srv://mandatum_admin:Mandatum2021*-@sessions.zov4x.mongodb.net/sessions?retryWrites=true&w=majority",
+    { useNewUrlParser: true, useUnifiedTopology: true }
+  )
+  .then((resp) => {
+    console.log("connected to mongo");
+  });
 
 const sessionSchema = new mongoose.Schema({
   id: String,
@@ -48,36 +56,44 @@ const sessionSchema = new mongoose.Schema({
   expires: Date,
   isOnline: Boolean,
   accessToken: String,
-  onlineAccessInfo: {}
+  onlineAccessInfo: {},
 });
 
-const SessionSch = mongoose.model('Session', sessionSchema);
+const SessionSch = mongoose.model("Session", sessionSchema);
 
 async function storeCallback(session) {
   console.log("Store Session", session);
   return await SessionSch.findOneAndUpdate({ id: session.id }, session, {
     new: true,
-    upsert: true
+    upsert: true,
   });
 }
 
 async function loadCallback(id) {
   const loadedSession = await SessionSch.findOne({ id: id });
 
-  if(!loadedSession){
+  if (!loadedSession) {
     return undefined;
   }
 
   const sess = new Session(loadedSession.id);
 
-  const { shop, state, scope, accessToken, isOnline, expires, onlineAccessInfo } = loadedSession
-  sess.shop = shop
-  sess.state = state
-  sess.scope = scope
-  sess.expires = expires ? new Date(expires) : undefined
-  sess.isOnline = isOnline
-  sess.accessToken = accessToken
-  sess.onlineAccessInfo = onlineAccessInfo
+  const {
+    shop,
+    state,
+    scope,
+    accessToken,
+    isOnline,
+    expires,
+    onlineAccessInfo,
+  } = loadedSession;
+  sess.shop = shop;
+  sess.state = state;
+  sess.scope = scope;
+  sess.expires = expires ? new Date(expires) : undefined;
+  sess.isOnline = isOnline;
+  sess.accessToken = accessToken;
+  sess.onlineAccessInfo = onlineAccessInfo;
 
   return sess;
 }
@@ -129,7 +145,6 @@ app.prepare().then(async () => {
           topic: "APP_UNINSTALLED",
           webhookHandler: async (topic, shop, body) =>
             delete ACTIVE_SHOPIFY_SHOPS[shop],
-            
         });
 
         if (!response.success) {
@@ -143,6 +158,50 @@ app.prepare().then(async () => {
         if (offlineSession) {
           ctx.redirect(`/?shop=${shop}`);
         } else {
+          console.log("------------------");
+          console.log("Offline --> ", shop);
+
+          // Create a new client for the specified shop.
+          const client = new Shopify.Clients.Rest(shop, accessToken);
+          // Use `client.get` to request the specified Shopify REST API endpoint, in this case `products`.
+          const store = await client.get({
+            path: "shop",
+          });
+          const storeInfo = store.body.shop;
+
+          // name, url, panel_url, accessToken, sf_api_token, instanceID
+          const createStore = await mandatumAPI.createStoreMANDATUM(
+            storeInfo.name,
+            `https://${storeInfo.domain}`,
+            `https://${storeInfo.domain}`,
+            accessToken,
+            undefined,
+            storeInfo.domain
+          );
+
+          const clientProducts = createClient(shop, accessToken);
+
+          const data = await clientProducts.query({
+            query: MANDATE_PRODUCTS_TAGS,
+          });
+          // console.log(data.data);
+          // console.log(data.products);
+          // console.log(data.products.edges);
+
+          for (let pro of data.data.products.edges) {
+            // console.log(pro);
+            //console.log(pro.node);
+            const id = pro.node.id;
+            const shopifyDisc = await clientProducts.mutate({
+              mutation: DELETE_TAGS,
+              variables: {
+                id,
+              },
+            });
+            console.log("TAG eliminated", shopifyDisc);
+          }
+
+          console.log(createStore);
           ctx.redirect(`/offlineLogin?shop=${shop}`);
         }
       },
@@ -177,6 +236,12 @@ app.prepare().then(async () => {
     }
   });
 
+  router.get("/api/scripts", async (ctx) => {
+    console.log(ctx.query);
+    // This shop hasn't been seen yet, go through OAuth to create a session
+    await send(ctx, `scripts/build/${ctx.query.filename}`);
+  });
+
   router.get("/getImpact", async (ctx) => {
     const shop = ctx.query.shop;
 
@@ -184,15 +249,20 @@ app.prepare().then(async () => {
       const impactData = await Impact.findOne({ shop });
 
       ctx.status = 200;
-      ctx.body = { message: "success", impactData: impactData ? impactData : {
-        id: null,
-        shop,
-        orders: 0,
-        donations: 0,
-        carbon: 0,
-        land: 0
-      }};
-    } catch(err){
+      ctx.body = {
+        message: "success",
+        impactData: impactData
+          ? impactData
+          : {
+              id: null,
+              shop,
+              orders: 0,
+              donations: 0,
+              carbon: 0,
+              land: 0,
+            },
+      };
+    } catch (err) {
       ctx.status = 500;
       ctx.body = { message: err?.message };
       console.log(err);
@@ -201,6 +271,8 @@ app.prepare().then(async () => {
 
   router.get("/offlineLogin", async (ctx) => {
     const shop = ctx.query.shop;
+
+    console.log("Offline ", shop);
 
     let authRoute = await Shopify.Auth.beginAuth(
       ctx.req,
@@ -240,8 +312,10 @@ app.prepare().then(async () => {
         throw new Error("Missing Parameter");
       }
 
+      console.log("-------------------");
       console.log(shop);
       console.log(offlineSession);
+      console.log("-------------------");
 
       const client = createClient(shop, offlineSession.accessToken);
 
@@ -249,7 +323,7 @@ app.prepare().then(async () => {
         query: gql`
           query Product($id: ID!) {
             shop {
-              privateMetafield(namespace: "mandatum", key: "activeWidget"){
+              privateMetafield(namespace: "mandatum", key: "activeWidget") {
                 key
                 value
               }
@@ -321,9 +395,11 @@ app.prepare().then(async () => {
         id: producto.product.id,
         isMandatum,
         title: isMandatum ? producto.product.title : undefined,
-        descuento: isMandatum ? parseFloat(producto.product.descuento.value) / 2 : undefined,
+        descuento: isMandatum
+          ? parseFloat(producto.product.descuento.value) / 2
+          : undefined,
         dias: isMandatum ? producto.product.dias.value : undefined,
-        newProduct: producto
+        newProduct: producto,
       };
     } catch (err) {
       console.log(err);
@@ -356,7 +432,7 @@ app.prepare().then(async () => {
           query {
             shop {
               name
-              privateMetafield(namespace: "mandatum", key: "activeWidget"){
+              privateMetafield(namespace: "mandatum", key: "activeWidget") {
                 key
                 value
               }
@@ -364,13 +440,13 @@ app.prepare().then(async () => {
             }
           }
         `,
-        fetchPolicy: "no-cache"
+        fetchPolicy: "no-cache",
       });
 
       console.log(getShopData.data.shop);
 
       ctx.body = getShopData.data.shop;
-    } catch(err){
+    } catch (err) {
       console.log(err);
       ctx.response.status = 500;
       ctx.body = err.message;
@@ -415,6 +491,15 @@ app.prepare().then(async () => {
               ) {
                 value
               }
+              featuredImage {
+                transformedSrc(maxWidth: 300)
+              }
+              priceRangeV2 {
+                maxVariantPrice {
+                  amount
+                  currencyCode
+                }
+              }
             }
           }
         `,
@@ -428,7 +513,25 @@ app.prepare().then(async () => {
       const dicountCode = new Buffer.from(
         productData.title + new Date().toISOString()
       );
-      const code = dicountCode.toString("base64");
+
+      const productMandatum = {
+        store_ID: shop,
+        product_ID: productId,
+        discount_percentage: productData.descuento.value,
+        waiting_days: productData.dias.value,
+        platform: "shopify", // lowercase() -> shopify, bigcommerce, wix
+        product_name: productData.title,
+        product_price: productData.priceRangeV2.maxVariantPrice.amount,
+        currency: productData.priceRangeV2.maxVariantPrice.currencyCode,
+        image: productData.featuredImage?.transformedSrc,
+      };
+
+      console.log(productMandatum);
+      const productWithDiscount = await mandatumAPI.createCouponMANDATUM(
+        productMandatum
+      );
+
+      const code = productWithDiscount.coupon_code;
       const discount = parseFloat(productData.descuento.value);
       const days = parseInt(productData.dias.value);
 
@@ -482,7 +585,7 @@ app.prepare().then(async () => {
         variables: {
           inicio,
           fin,
-          discount: (discount / 2) / 100,
+          discount: discount / 2 / 100,
           productId,
           productTitle: `Mandatum - ${
             productData.title
@@ -533,16 +636,16 @@ app.prepare().then(async () => {
         variables: {
           input: {
             lineItems,
-            customAttributes
-          }
-        }
+            customAttributes,
+          },
+        },
       });
 
       console.log("Draft Order", dOrder.data.draftOrderCreate.draftOrder);
       console.log("Draft Errors", dOrder.data.draftOrderCreate.userErrors);
 
       ctx.body = dOrder.data.draftOrderCreate;
-    } catch(error) {
+    } catch (error) {
       console.error(error);
       ctx.response.status = 500;
       ctx.body = error.message;
@@ -550,11 +653,15 @@ app.prepare().then(async () => {
   });
 
   router.post("/webhooks", async (ctx) => {
-    const shop = ctx.request.header['x-shopify-shop-domain'];
+    const shop = ctx.request.header["x-shopify-shop-domain"];
+
+    const responseDeleteStore = await mandatumAPI.deleteStoreMANDATUM(shop);
+    console.log(responseDeleteStore);
+
     try {
       await Shopify.Webhooks.Registry.process(ctx.req, ctx.res);
-      console.log("Contexto: ", ctx)
-      await SessionSch.deleteMany({shop})
+      console.log("Contexto: ", ctx);
+      await SessionSch.deleteMany({ shop });
       console.log(`Webhook processed, returned status code 200`);
     } catch (error) {
       console.log(`Failed to process webhook: ${error}`);
@@ -565,10 +672,11 @@ app.prepare().then(async () => {
     const body = ctx.request.body;
 
     const message = {
-      to: 'jeisson@mandatum.co',
-      from: 'mandatum@em5614.acromatico.dev', // Use the email address or domain you verified above
-      subject: 'Customer Delition Request',
-      text: 'A customer has requested the delition of his profile from your plataform',
+      to: "jeisson@mandatum.co",
+      from: "mandatum@em5614.acromatico.dev", // Use the email address or domain you verified above
+      subject: "Customer Delition Request",
+      text:
+        "A customer has requested the delition of his profile from your plataform",
       html: `
         <h1>A customer has requested the delition of his/her profile.</h1>
         <p>Delete before 30 natural days, the client requesting this is the next one:</p>
@@ -597,10 +705,11 @@ app.prepare().then(async () => {
     const body = ctx.request.body;
 
     const message = {
-      to: 'jeisson@mandatum.co',
-      from: 'mandatum@em5614.acromatico.dev', // Use the email address or domain you verified above
-      subject: 'Shop Delition Request',
-      text: 'A shop has requested the delition of his profile from your plataform',
+      to: "jeisson@mandatum.co",
+      from: "mandatum@em5614.acromatico.dev", // Use the email address or domain you verified above
+      subject: "Shop Delition Request",
+      text:
+        "A shop has requested the delition of his profile from your plataform",
       html: `
         <h1>A shop has requested the delition of its profile.</h1>
         <p>Delete before 48 hours, the shop requesting this is the next one:</p>
@@ -624,10 +733,11 @@ app.prepare().then(async () => {
     const body = ctx.request.body;
 
     const message = {
-      to: 'jeisson@mandatum.co',
-      from: 'mandatum@em5614.acromatico.dev', // Use the email address or domain you verified above
-      subject: 'Customer Info Request',
-      text: 'A customer has requested the information of his profile from your plataform',
+      to: "jeisson@mandatum.co",
+      from: "mandatum@em5614.acromatico.dev", // Use the email address or domain you verified above
+      subject: "Customer Info Request",
+      text:
+        "A customer has requested the information of his profile from your plataform",
       html: `
         <h1>A customer has requested the information of his/her profile.</h1>
         <p>The customer requesting informaion is the next one:</p>
@@ -659,17 +769,31 @@ app.prepare().then(async () => {
       (attr) => attr.name === "Mandatum Order"
     );
     const shop = body.order_status_url.split("/")[2];
-
+    console.log(body);
     try {
       if (mandatumAttribute) {
-        const mandateProduct = body.line_items.find(linea => {
-          const hasPropertie = linea.properties.find(proper => proper.name === "Mandatum Discount");
+        const mandateProduct = body.line_items.find((linea) => {
+          const hasPropertie = linea.properties.find(
+            (proper) => proper.name === "Mandatum Discount"
+          );
 
           return hasPropertie ? true : false;
         });
+
+        const couponInfo = body.discount_applications.find((attr) =>
+          attr.description.includes("mandatum")
+        );
+
+        console.log(mandateProduct.properties);
         const mandatumCharge = parseFloat(mandateProduct.price);
-        const discountValue = parseFloat(mandateProduct.properties.find(proper => proper.name === "Mandatum Discount").value.split("%")[0]) / 100;
-        const exchangeRate = parseFloat(body.total_price) / parseFloat(body.total_price_usd);
+        const discountValue =
+          parseFloat(
+            mandateProduct.properties
+              .find((proper) => proper.name === "Mandatum Discount")
+              .value.split("%")[0]
+          ) / 100;
+        const exchangeRate =
+          parseFloat(body.total_price) / parseFloat(body.total_price_usd);
         const offlineSession = await Shopify.Utils.loadOfflineSession(shop);
         const client = createClient(shop, offlineSession.accessToken);
         let amount = mandatumCharge * 0.02;
@@ -706,7 +830,7 @@ app.prepare().then(async () => {
             },
             description: `2% of mandate product in order ${body.name}`,
           },
-          fetchPolicy: "no-cache"
+          fetchPolicy: "no-cache",
         });
 
         const donationCharge = await client.mutate({
@@ -717,26 +841,50 @@ app.prepare().then(async () => {
               amount: `${donation}`,
               currencyCode: "USD",
             },
-            description: `${discountValue * 100}% donation of mandate product in order ${body.name}`,
-          }
+            description: `${
+              discountValue * 100
+            }% donation of mandate product in order ${body.name}`,
+          },
         });
 
-        const savedImpact = await Impact.findOneAndUpdate({ shop }, {
-          $inc: {
-            orders: 1,
-            donations: donation,
-            carbon: donation / 10,
-            land: (donation / 10) * 0.25
+        const savedImpact = await Impact.findOneAndUpdate(
+          { shop },
+          {
+            $inc: {
+              orders: 1,
+              donations: donation,
+              carbon: donation / 10,
+              land: (donation / 10) * 0.25,
+            },
+          },
+          {
+            upsert: true,
+            new: true,
           }
-        }, {
-          upsert: true,
-          new: true
-        });
+        );
 
-        console.log("Usage Data: ", usage.data.appUsageRecordCreate.appUsageRecord);
-        console.log("Donation Data: ", donationCharge.data.appUsageRecordCreate.appUsageRecord);
-        console.log("Usage Errors: ", usage.data.appUsageRecordCreate.userErrors);
-        console.log("Donations Errors: ", donationCharge.data.appUsageRecordCreate.userErrors);
+        const responseApplication = await mandatumAPI.applyCouponStoreMANDATUM(
+          couponInfo.description,
+          body.order_number
+        );
+        console.log("Coupon Applied Mandatum", responseApplication);
+
+        console.log(
+          "Usage Data: ",
+          usage.data.appUsageRecordCreate.appUsageRecord
+        );
+        console.log(
+          "Donation Data: ",
+          donationCharge.data.appUsageRecordCreate.appUsageRecord
+        );
+        console.log(
+          "Usage Errors: ",
+          usage.data.appUsageRecordCreate.userErrors
+        );
+        console.log(
+          "Donations Errors: ",
+          donationCharge.data.appUsageRecordCreate.userErrors
+        );
 
         console.log("Descuento: ", discountValue);
         console.log("Impact: ", savedImpact);
@@ -769,3 +917,5 @@ app.prepare().then(async () => {
     console.log(`> Ready on http://localhost:${port}`);
   });
 });
+
+// app.use( mount( '/public', serve('./public') ) ) ;

@@ -5,7 +5,7 @@ export const APP_DATA = gql`
     shop {
       id
       url
-      privateMetafield(namespace: "mandatum", key: "activeWidget"){
+      privateMetafield(namespace: "mandatum", key: "activeWidget") {
         key
         value
       }
@@ -53,7 +53,7 @@ export const WIDGET_UPDATE = gql`
       }
     }
   }
-`
+`;
 
 export const APP_INSTALL = gql`
   mutation AppInstall($return: URL!) {
@@ -64,8 +64,12 @@ export const APP_INSTALL = gql`
         {
           plan: {
             appUsagePricingDetails: {
-              cappedAmount: { amount: 5000.00, currencyCode: USD },
-              terms: "App will charge 2% of the total price in mandate products each time a discount is used."
+              cappedAmount: { amount: 10000.00, currencyCode: USD }
+              terms: """
+              Additional fees may apply: (i) Pay per use using the money you save on Supply Chain costs,
+              2% of the total sales price.
+              (ii) The app collects the donations your company wants to make using the money you save on Supply Chain costs.
+              """
             }
           }
         }
@@ -85,7 +89,11 @@ export const APP_INSTALL = gql`
 `;
 
 export const RECURRING_CHARGE = gql`
-  mutation appUsageRecordCreate($subscriptionLineItemId: ID!, $price: MoneyInput!, $description: String!) {
+  mutation appUsageRecordCreate(
+    $subscriptionLineItemId: ID!
+    $price: MoneyInput!
+    $description: String!
+  ) {
     appUsageRecordCreate(
       subscriptionLineItemId: $subscriptionLineItemId
       price: $price
@@ -100,7 +108,7 @@ export const RECURRING_CHARGE = gql`
       }
     }
   }
-`
+`;
 
 export const JS_INSTALL = gql`
   mutation scriptTagCreate($input: ScriptTagInput!) {
@@ -117,7 +125,9 @@ export const JS_INSTALL = gql`
 `;
 
 export const WEBHOOK_INSTALL = gql`
-  mutation webhookSubscriptionCreate($webhookSubscription: WebhookSubscriptionInput!) {
+  mutation webhookSubscriptionCreate(
+    $webhookSubscription: WebhookSubscriptionInput!
+  ) {
     webhookSubscriptionCreate(
       topic: ORDERS_PAID
       webhookSubscription: $webhookSubscription
@@ -131,13 +141,11 @@ export const WEBHOOK_INSTALL = gql`
       }
     }
   }
-`
+`;
 
 export const JS_QUERY = gql`
   query scriptTags {
-    scriptTags(
-      first: 10
-    ){
+    scriptTags(first: 10) {
       edges {
         node {
           id
@@ -150,35 +158,12 @@ export const JS_QUERY = gql`
   }
 `;
 
-// export const WEBHOOK_QUERY = gql`
-//   query webhookSubscriptions {
-//     webhookSubscriptions(
-//       first: 1
-//       callbackUrl: "https://stage-dot-mandatum-app.uc.r.appspot.com/sale"
-//     ){
-//       edges {
-//         node {
-//           id
-//           createdAt
-//           topic
-//           endpoint {
-//             __typename
-//             ... on WebhookHttpEndpoint {
-//               callbackUrl
-//             }
-//           }
-//         }
-//       }
-//     }
-//   }
-// `;
-
 export const WEBHOOK_QUERY = gql`
   query webhookSubscriptions {
     webhookSubscriptions(
       first: 1
       callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale"
-    ){
+    ) {
       edges {
         node {
           id
@@ -208,7 +193,7 @@ export const DELETE_APP = gql`
       }
     }
   }
-`
+`;
 
 export const DELETE_JS = gql`
   mutation scriptTagDelete($id: ID!) {
@@ -220,7 +205,7 @@ export const DELETE_JS = gql`
       }
     }
   }
-`
+`;
 
 export const DELETE_WEBHOOK = gql`
   mutation webhookSubscriptionDelete($id: ID!) {
@@ -232,11 +217,11 @@ export const DELETE_WEBHOOK = gql`
       }
     }
   }
-`
+`;
 
 export const INITIAL_PRODUCTS = gql`
   query InitialProducts {
-    products(first: 10, query: "-tag:mandatum") {
+    products(first: 20) {
       edges {
         node {
           id
@@ -255,33 +240,45 @@ export const INITIAL_PRODUCTS = gql`
       }
     }
   }
-`
+`;
 
+///*
 export const MANDATE_PRODUCTS = gql`
+  query MandateProducts($ids: [ID!]!) {
+    nodes(ids: $ids) {
+      ... on Product {
+        id
+        featuredImage {
+          transformedSrc(maxWidth: 300)
+        }
+        priceRangeV2 {
+          maxVariantPrice {
+            amount
+            currencyCode
+          }
+        }
+        title
+        description
+        privateMetafields(namespace: "mandatum", first: 4) {
+          edges {
+            node {
+              key
+              value
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+//*/
+
+export const MANDATE_PRODUCTS_TAGS = gql`
   query MandateProducts {
     products(first: 100, query: "tag:mandatum") {
       edges {
         node {
           id
-          featuredImage {
-            transformedSrc(maxWidth: 300)
-          }
-          priceRangeV2 {
-            maxVariantPrice {
-              amount
-              currencyCode
-            }
-          }
-          title
-          description
-          privateMetafields(namespace: "mandatum", first: 4) {
-            edges {
-              node {
-                key
-                value
-              }
-            }
-          }
         }
       }
     }
@@ -438,12 +435,12 @@ export const UPDATE_METAFIELDS = gql`
 export const GET_TOKENS = gql`
   query getTokens {
     shop {
-      storefrontAccessTokens(first:1) {
+      storefrontAccessTokens(first: 1) {
         edges {
           node {
             id
             accessToken
-            accessScopes{
+            accessScopes {
               handle
             }
             title
@@ -452,7 +449,7 @@ export const GET_TOKENS = gql`
       }
     }
   }
-`
+`;
 
 export const CREATE_TOKEN = gql`
   mutation storefrontAccessTokenCreate($input: StorefrontAccessTokenInput!) {
@@ -463,7 +460,7 @@ export const CREATE_TOKEN = gql`
       storefrontAccessToken {
         id
         accessToken
-        accessScopes{
+        accessScopes {
           handle
         }
         title

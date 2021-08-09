@@ -1,0 +1,1 @@
+declare module "https://cdn.shopify.com/s/shopify/option_selection.js"

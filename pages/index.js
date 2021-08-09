@@ -1,25 +1,43 @@
-// @ts-check
+import React, { useCallback, useRef, useState, useEffect } from "react";
 import {
+  AppProvider,
+  Avatar,
+  ActionList,
   Card,
-  Heading,
-  Page,
-  TextStyle,
-  Modal,
-  Filters,
-  ResourceList,
-  ResourceItem,
   TextField,
   TextContainer,
-  Thumbnail,
+  ontextualSaveBar,
+  FormLayout,
+  Modal,
+  Frame,
+  Layout,
+  Loading,
+  Navigation,
+  Page,
+  SkeletonBodyText,
+  SkeletonDisplayText,
+  SkeletonPage,
+  Toast,
+  TopBar,
   Stack,
-  Button,
   Subheading,
+  Button,
+  ButtonGroup,
+  Heading,
 } from "@shopify/polaris";
-import { useCallback, useEffect, useState } from "react";
-import { useLazyQuery, useMutation, useQuery } from "react-apollo";
-import { Redirect } from "@shopify/app-bridge/actions";
-import { useAppBridge } from "@shopify/app-bridge-react";
+import {
+  AddProductMajor,
+  ReportMinor,
+  ArrowLeftMinor,
+  ConversationMinor,
+  HomeMajor,
+  OrdersMajor,
+} from "@shopify/polaris-icons";
 import LoadingPage from "../components/LoadingPage";
+import Product from "../components/Product";
+import CommunityImpact from "../components/CommunityImpact";
+import { Redirect } from "@shopify/app-bridge/actions";
+
 import {
   ADD_METAFIELDS,
   ADD_TAGS,
@@ -40,102 +58,30 @@ import {
   INITIAL_PRODUCTS,
   WIDGET_UPDATE,
 } from "../helpers/queries";
+import mandatumAPI from "../helpers/mandatumAPI";
+import { useAppBridge } from "@shopify/app-bridge-react";
+import { useLazyQuery, useMutation, useQuery } from "react-apollo";
 
-const Index = () => {
+export default function FrameExample() {
   const app = useAppBridge();
   const redirect = Redirect.create(app);
+  const [url, setUrl] = useState("");
 
-  const { data, loading, error, refetch } = useQuery(MANDATE_PRODUCTS, {
-    fetchPolicy: "no-cache",
-  });
-  const {
-    data: productData,
-    loading: productLoading,
-    error: productError,
-    refetch: productRefetch,
-  } = useQuery(INITIAL_PRODUCTS, {
-    fetchPolicy: "no-cache",
-  });
-  const { data: appData, loading: appLoading, error: appError } = useQuery(
-    APP_DATA,
-    {
-      fetchPolicy: "no-cache",
-    }
-  );
-  const {
-    data: jsData,
-    loading: jsLoading,
-    error: jsError,
-    refetch: jsRefetch,
-  } = useQuery(JS_QUERY, {
-    fetchPolicy: "no-cache",
-  });
-  const { data: whData, loading: whLoading, error: whError } = useQuery(
-    WEBHOOK_QUERY,
-    {
-      fetchPolicy: "no-cache",
-    }
-  );
-  const [queryProducts, qResults] = useLazyQuery(QUERY_PRODUCTS, {
-    fetchPolicy: "no-cache",
-  });
-  const [appInstall] = useMutation(APP_INSTALL, {
-    fetchPolicy: "no-cache",
-  });
-  const [jsInstall] = useMutation(JS_INSTALL, {
-    fetchPolicy: "no-cache",
-  });
-  const [whInstall] = useMutation(WEBHOOK_INSTALL, {
-    fetchPolicy: "no-cache",
-  });
-  const [appDelete] = useMutation(DELETE_APP, {
-    fetchPolicy: "no-cache",
-  });
-  const [jsDelete] = useMutation(DELETE_JS, {
-    fetchPolicy: "no-cache",
-  });
-  const [whDelete] = useMutation(DELETE_WEBHOOK, {
-    fetchPolicy: "no-cache",
-  });
-  const [addMeta] = useMutation(ADD_METAFIELDS, {
-    fetchPolicy: "no-cache",
-  });
-  const [addTags] = useMutation(ADD_TAGS, {
-    fetchPolicy: "no-cache",
-  });
-  const [deleteMeta] = useMutation(DELETE_META, {
-    fetchPolicy: "no-cache",
-  });
-  const [deleteTags] = useMutation(DELETE_TAGS, {
-    fetchPolicy: "no-cache",
-  });
-  const [updateMeta] = useMutation(UPDATE_METAFIELDS, {
-    fetchPolicy: "no-cache",
-  });
-  const [updateWidget] = useMutation(WIDGET_UPDATE, {
-    fetchPolicy: "no-cache",
-  });
+  useEffect(() => {
+    // console.log("https://mandatum-app.uc.r.appspot.com");
 
-  const [activeModal, setActiveModal] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
-  const [queryData, setQueryData] = useState();
-  const [selectedProduct, setSelectedProduct] = useState([]);
-  const [modalProduct, setModalProduct] = useState({
-    active: false,
-    id: undefined,
-  });
-  const [generalLoading, setGeneralLoading] = useState(false);
-  const [modalEdit, setModalEdit] = useState({
-    active: false,
-    id: undefined,
-    title: "",
-    image: "",
-    price: "",
-    discount: "",
-    delivery: "",
-  });
-  const [installing, setInstalling] = useState(false);
-  const [widgetStatus, setWidgetStatus] = useState(false);
+    const head = document.querySelector("body");
+    const script = document.createElement("script");
+    script.setAttribute(
+      "src",
+      "https://assets.calendly.com/assets/external/widget.js"
+    );
+    head.appendChild(script);
+
+    // setUrl("https://calendly.com/mandatum-ceo/protect-nature-improve-profitability-at-no-extra-cost");
+
+    // setTimeout(() => {}, 3000);
+  }, []);
 
   const handleSubscribe = useCallback(async () => {
     const installData = await appInstall({
@@ -149,393 +95,279 @@ const Index = () => {
     redirect.dispatch(Redirect.Action.REMOTE, urlRedir);
   }, [appData, app, redirect]);
 
-  const deleteApp = useCallback(async () => {
-    const chargeId = appData.app.installation.activeSubscriptions[0]?.id;
+  const [appInstall] = useMutation(APP_INSTALL, {
+    fetchPolicy: "no-cache",
+  });
 
-    // const deletedApp = await appDelete({
-    //   variables: {
-    //     id: chargeId,
-    //   },
-    // });
+  const defaultState = useRef({
+    emailFieldValue: "dharma@jadedpixel.com",
+    nameFieldValue: "Jaded Pixel",
+  });
+  const skipToContentRef = useRef(null);
 
-    // jsData.scriptTags.edges.forEach((scri) => {
-    //   jsDelete({
-    //     variables: {
-    //       id: scri.node.id,
-    //     },
-    //   });
-    // });
+  const [toastActive, setToastActive] = useState(false);
+  const [productsActive, setProductsActive] = useState(false);
+  const [communityActive, setCommunityActive] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [userMenuActive, setUserMenuActive] = useState(false);
+  const [mobileNavigationActive, setMobileNavigationActive] = useState(false);
+  const [modalActive, setModalActive] = useState(false);
+  const [modalActiveWelcome, setModalActiveWelcome] = useState(false);
+  const [nameFieldValue, setNameFieldValue] = useState(
+    defaultState.current.nameFieldValue
+  );
+  const [emailFieldValue, setEmailFieldValue] = useState(
+    defaultState.current.emailFieldValue
+  );
+  const [storeName, setStoreName] = useState(
+    defaultState.current.nameFieldValue
+  );
+  const [supportSubject, setSupportSubject] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
 
-    // whData.webhookSubscriptions.edges.forEach((who) => {
-    //   whDelete({
-    //     variables: {
-    //       id: who.node.id,
-    //     },
-    //   });
-    // });
-
-    data.products.edges.forEach((pro) => {
-      const id = pro.node.id;
-      // deleteMeta({
-      //   variables: {
-      //     id,
-      //     key: "porcentaje",
-      //   },
-      // });
-      // deleteMeta({
-      //   variables: {
-      //     id,
-      //     key: "descuento",
-      //   },
-      // });
-      // deleteMeta({
-      //   variables: {
-      //     id,
-      //     key: "donacion",
-      //   },
-      // });
-      // deleteMeta({
-      //   variables: {
-      //     id,
-      //     key: "dias_entrega",
-      //   },
-      // });
-      deleteTags({
-        variables: {
-          id,
-        },
-      });
-    });
-
-    redirect.dispatch(Redirect.Action.APP, "/");
-  }, [appData, jsData, whData, data]);
-
-  const toggleWidget = useCallback(async () => {
-    const currnet = !widgetStatus;
-    updateWidget({
-      variables: {
-        input: {
-          namespace: "mandatum",
-          key: "activeWidget",
-          valueInput: {
-            value: currnet ? "true" : "false",
-            valueType: "STRING",
-          },
-        },
-      },
-    });
-    setWidgetStatus(currnet);
-  }, [appData, widgetStatus]);
-
-  const handleRefetch = useCallback(async () => {
-    setGeneralLoading(true);
-    await refetch();
-    setGeneralLoading(false);
-  }, [refetch]);
-
-  const handleSelectProduct = useCallback(async () => {
-    setGeneralLoading(true);
-    const addMetaArray = [];
-    const addTagArray = [];
-
-    // @ts-ignore
-    selectedProduct.forEach((prod) => {
-      addMetaArray.push(
-        addMeta({
-          variables: {
-            id: prod,
-          },
-        })
-      );
-      addTagArray.push(
-        addTags({
-          variables: {
-            id: prod,
-          },
-        })
-      );
-    });
-
-    try {
-      await Promise.all(addMetaArray);
-      await Promise.all(addTagArray);
-
-      setActiveModal(false);
-      setSearchValue("");
-      setQueryData(undefined);
-      setSelectedProduct([]);
-
-      setTimeout(() => {
-        refetch();
-        setGeneralLoading(false);
-      }, 20000);
-    } catch (err) {
-      console.log(err);
+  const { data: appData, loading: appLoading, error: appError } = useQuery(
+    APP_DATA,
+    {
+      fetchPolicy: "no-cache",
     }
-  }, [selectedProduct, refetch]);
-
-  const handleDeleteProduct = useCallback(
-    async (id) => {
-      setGeneralLoading(true);
-      setModalProduct({ active: false, id: undefined });
-      try {
-        await deleteMeta({
-          variables: {
-            id,
-            key: "porcentaje",
-          },
-        });
-        await deleteMeta({
-          variables: {
-            id,
-            key: "descuento",
-          },
-        });
-        await deleteMeta({
-          variables: {
-            id,
-            key: "donacion",
-          },
-        });
-        await deleteMeta({
-          variables: {
-            id,
-            key: "dias_entrega",
-          },
-        });
-        await deleteTags({
-          variables: {
-            id,
-          },
-        });
-
-        await refetch();
-      } catch (err) {
-        console.log(err);
-      }
-      setGeneralLoading(false);
-    },
-    [refetch]
   );
 
-  const handleUpdateProducts = useCallback(
-    async (id, discount, days) => {
-      setGeneralLoading(true);
-      setModalEdit({
-        active: false,
-        id: undefined,
-        title: "",
-        image: "",
-        price: "",
-        discount: "",
-        delivery: "",
-      });
-
-      try {
-        await updateMeta({
-          variables: {
-            id: id,
-            porcentaje: `${parseFloat(discount) / 2}`,
-            donacion: `${parseFloat(discount) / 2}`,
-            descuento: discount,
-            dias: days,
-          },
-        });
-
-        setTimeout(() => {
-          refetch();
-          setGeneralLoading(false);
-        }, 2000);
-      } catch (err) {
-        console.log(err);
-      }
-
-      // setGeneralLoading(false);
-    },
-    [refetch]
+  const handleSubjectChange = useCallback(
+    (value) => setSupportSubject(value),
+    []
   );
-
-  const onQueryChange = useCallback(
-    async (value) => {
-      setSearchValue(value);
-      setSelectedProduct([]);
-
-      if (value.length >= 4) {
-        queryProducts({
-          variables: {
-            query: value,
-          },
-        });
-      }
-    },
-    [searchValue]
+  const handleMessageChange = useCallback(
+    (value) => setSupportMessage(value),
+    []
   );
+  const handleDiscard = useCallback(() => {
+    setEmailFieldValue(defaultState.current.emailFieldValue);
+    setNameFieldValue(defaultState.current.nameFieldValue);
+    setIsDirty(false);
+  }, []);
+  const handleSave = useCallback(() => {
+    defaultState.current.nameFieldValue = nameFieldValue;
+    defaultState.current.emailFieldValue = emailFieldValue;
 
-  const onQueryClear = useCallback(async () => {
+    setIsDirty(false);
+    setToastActive(true);
+    setStoreName(defaultState.current.nameFieldValue);
+  }, [emailFieldValue, nameFieldValue]);
+  const handleNameFieldChange = useCallback((value) => {
+    setNameFieldValue(value);
+    value && setIsDirty(true);
+  }, []);
+  const handleEmailFieldChange = useCallback((value) => {
+    setEmailFieldValue(value);
+    value && setIsDirty(true);
+  }, []);
+  const handleSearchResultsDismiss = useCallback(() => {
+    setSearchActive(false);
     setSearchValue("");
-    setSelectedProduct([]);
-    setQueryData(undefined);
-  }, [searchValue]);
-
-  const handleProductClick = useCallback(
-    (id) => {
-      setSelectedProduct(id);
-    },
-    [selectedProduct]
+  }, []);
+  const handleSearchFieldChange = useCallback((value) => {
+    setSearchValue(value);
+    setSearchActive(value.length > 0);
+  }, []);
+  const toggleToastActive = useCallback(
+    () => setToastActive((toastActive) => !toastActive),
+    []
+  );
+  const toggleUserMenuActive = useCallback(
+    () => setUserMenuActive((userMenuActive) => !userMenuActive),
+    []
+  );
+  const toggleMobileNavigationActive = useCallback(
+    () =>
+      setMobileNavigationActive(
+        (mobileNavigationActive) => !mobileNavigationActive
+      ),
+    []
   );
 
-  const handleInstall = useCallback(async () => {
-    setInstalling(true);
-    for (let i = 0; i <= jsData.scriptTags.edges.length - 1; i++) {
-      await jsDelete({
-        variables: {
-          id: jsData.scriptTags.edges[i].node.id,
-        },
-      });
-    }
+  const toggleIsProducts = useCallback(() => {
+    setProductsActive(true);
+    setCommunityActive(false);
+  }, []);
 
-    await jsInstall({
-      variables: {
-        input: {
-          src:
-            "https://acromatico-development.github.io/mandatum-app/build/mandatum.js",
-          displayScope: "ALL",
-        },
-      },
-    });
+  const toggleIsCommunity = useCallback(() => {
+    setCommunityActive(true);
+    setProductsActive(false);
+  }, []);
 
-    await jsInstall({
-      variables: {
-        input: {
-          src:
-            "https://cdn.shopify.com/s/shopify/option_selection.js?20cf2ffc74856c1f49a46f6e0abc4acf6ae5bb34",
-          displayScope: "ONLINE_STORE",
-        },
-      },
-    });
+  const toggleModalActive = useCallback(
+    () => setModalActive((modalActive) => !modalActive),
+    []
+  );
 
-    await jsRefetch();
+  const toggleModalActiveWelcome = useCallback(
+    () => setModalActiveWelcome((modalActiveWelcome) => !modalActiveWelcome),
+    []
+  );
 
-    setInstalling(false);
-  }, [jsData]);
+  const toastMarkup = toastActive ? (
+    <Toast onDismiss={toggleToastActive} content="Changes saved" />
+  ) : null;
 
-  useEffect(() => {
-    // @ts-ignore
-    if (
-      appData?.app?.installation?.activeSubscriptions.length > 0 &&
-      !productLoading &&
-      !productError &&
-      productData &&
-      !queryData
-    ) {
-      console.log("initial products", productData);
-      const newData = productData.products.edges.map((resp) => resp.node);
-      setQueryData(newData);
-    }
-  }, [productLoading, productError, productData, queryData, appData]);
+  const userMenuActions = [
+    {
+      items: [{ content: "Community forums" }],
+    },
+  ];
 
-  useEffect(() => {
-    if (appData?.shop?.privateMetafield?.value) {
-      const curr =
-        appData?.shop?.privateMetafield?.value === "false" ? false : true;
-      setWidgetStatus(curr);
-    }
-  }, [appData]);
+  const contextualSaveBarMarkup = isDirty ? (
+    <ContextualSaveBar
+      message="Unsaved changes"
+      saveAction={{
+        onAction: handleSave,
+      }}
+      discardAction={{
+        onAction: handleDiscard,
+      }}
+    />
+  ) : null;
 
-  useEffect(() => {
-    console.log(appData);
-    if (!qResults.loading && !qResults.error && qResults.data) {
-      const newData = qResults.data.products.edges.map((resp) => resp.node);
-      setQueryData(newData);
-    }
+  const userMenuMarkup = (
+    <TopBar.UserMenu
+      actions={userMenuActions}
+      name="Dharma"
+      detail={storeName}
+      initials="D"
+      open={userMenuActive}
+      onToggle={toggleUserMenuActive}
+    />
+  );
 
-    if (
-      data &&
-      !loading &&
-      !error &&
-      !appLoading &&
-      !appError &&
-      appData &&
-      whData &&
-      whData.webhookSubscriptions.edges.length === 0
-    ) {
-      console.log("app");
+  const searchResultsMarkup = (
+    <ActionList
+      items={[
+        { content: "Shopify help center" },
+        { content: "Community forums" },
+      ]}
+    />
+  );
 
-      console.log("ID", appData.shop.id);
+  const searchFieldMarkup = (
+    <TopBar.SearchField
+      onChange={handleSearchFieldChange}
+      value={searchValue}
+      placeholder="Search"
+    />
+  );
 
-      deleteApp();
+  const topBarMarkup = (
+    <TopBar
+      showNavigationToggle
+      //userMenu={userMenuMarkup}
+      //searchResultsVisible={searchActive}
+      //searchField={searchFieldMarkup}
+      //searchResults={searchResultsMarkup}
+      //onSearchResultsDismiss={handleSearchResultsDismiss}
+      onNavigationToggle={toggleMobileNavigationActive}
+    />
+  );
 
-      updateWidget({
-        variables: {
-          input: {
-            namespace: "mandatum",
-            key: "activeWidget",
-            valueInput: {
-              value: "false",
-              valueType: "STRING",
-            },
+  const navigationMarkup = (
+    <Navigation location="/">
+      {/*<Navigation.Section
+        items={[
+          {
+            label: 'Back to Shopify',
+            icon: ArrowLeftMinor,
           },
-        },
-      });
-    }
-
-    if (
-      !whLoading &&
-      !whError &&
-      whData &&
-      (whData.webhookSubscriptions.edges.length === 0 ||
-        whData.webhookSubscriptions.edges.length > 1)
-    ) {
-      console.log("webhook");
-      whData.webhookSubscriptions.edges.forEach((who) => {
-        whDelete({
-          variables: {
-            id: who.node.id,
+        ]}
+      />*/}
+      <Navigation.Section
+        // separator
+        items={[
+          {
+            label: "Products",
+            icon: AddProductMajor,
+            onClick: toggleIsProducts,
           },
-        });
-      });
-
-      whInstall({
-        variables: {
-          webhookSubscription: {
-            callbackUrl: "https://mandatum-app.uc.r.appspot.com/sale",
-            // callbackUrl: "https://stage-dot-mandatum-app.uc.r.appspot.com/sale"
+          {
+            label: "Community Impact",
+            icon: ReportMinor,
+            accessibilityLabel: "Contact support",
+            onClick: toggleIsCommunity,
           },
-        },
-      }).then((resp) => console.log(resp));
-    }
+        ]}
+      />
+      <Navigation.Section
+        title="Support"
+        items={[{}]}
+        action={{
+          icon: ConversationMinor,
+          accessibilityLabel: "Contact support",
+          onClick: toggleModalActive,
+        }}
+        separator
+      />
+    </Navigation>
+  );
 
-    if (
-      !installing &&
-      !jsLoading &&
-      !jsError &&
-      jsData &&
-      (jsData.scriptTags.edges.length === 0 ||
-        jsData.scriptTags.edges.length > 2)
-    ) {
-      console.log("js");
-      handleInstall();
-    }
-  }, [
-    qResults.loading,
-    qResults.error,
-    qResults.data,
-    appLoading,
-    appError,
-    appData,
-    jsData,
-    jsError,
-    jsLoading,
-    whLoading,
-    whError,
-    whData,
-    installing,
-    data,
-    loading,
-    error,
-  ]);
+  // const loadingMarkup = isLoading ? <Loading /> : null;
 
-  if (error || appError) {
+  const skipToContentTarget = (
+    <a id="SkipToContentTarget" ref={skipToContentRef} tabIndex={-1} />
+  );
+
+  const loadingPageMarkup = (
+    <Card title="Online store dashboard" sectioned>
+      <p>View a summary of your online store’s performance.</p>
+    </Card>
+  );
+
+  const pageMarkup = communityActive ? <CommunityImpact /> : <Product />;
+
+  const modalMarkup = (
+    <Modal
+      open={modalActive}
+      onClose={toggleModalActive}
+      // title="Contact support"
+      src="https://calendly.com/mandatum-ceo/protect-nature-improve-profitability-at-no-extra-cost"
+      // noScroll={false}
+      // small={true}
+      // limitHeight={true}
+      /*
+      primaryAction={{
+        content: 'Close',
+        onAction: toggleModalActive,
+      }}
+      */
+    >
+      {/*<Modal.Section>
+        <FormLayout>
+          <TextField
+            label="Subject"
+            value={supportSubject}
+            onChange={handleSubjectChange}
+          />
+          <TextField
+            label="Message"
+            value={supportMessage}
+            onChange={handleMessageChange}
+            multiline
+          />
+        </FormLayout>
+      </Modal.Section>*/}
+    </Modal>
+  );
+
+  const theme = {
+    logo: {
+      width: 124,
+      topBarSource: "https://www.mandatum.co/img/logomandatum.png",
+      contextualSaveBarSource: "https://www.mandatum.co/img/logomandatum.png",
+      url: "http://jadedpixel.com",
+      accessibilityLabel: "Jaded Pixel",
+      colorScheme: "light",
+    },
+  };
+
+  if (appError) {
     return (
       <Page>
         <Heading>Error</Heading>
@@ -543,330 +375,108 @@ const Index = () => {
     );
   }
 
-  if (loading || appLoading) return <LoadingPage />;
+  if (appLoading) return <LoadingPage />;
 
   if (appData?.app?.installation?.activeSubscriptions.length === 0) {
+    const description = `
+                        Great for niche and independent brands who want to promote sustainability and climate action, 
+                        while gaining flexibility in their shipping. \n
+                        Attract new customers by offering nature-positive donations, 
+                        paid for by the savings in supply chain costs. 
+                        Reach new consumer segments, by letting your cost savings fund product discounts – 
+                        most shoppers can’t resist a bargain!
+                        `;
     return (
-      <Page title="Welcome to Mandatum" subtitle="Please subscribe to procede">
-        <Card sectioned>
-          <TextContainer>
-            <Stack alignment="center" vertical={true}>
-              <Subheading element="h2">Subscribe to Mandatum</Subheading>
-              <Button primary onClick={handleSubscribe}>
-                Suscribe
-              </Button>
+      <Page title="Welcome to Mandatum">
+        <Card>
+          <Card.Section>
+            <Stack spacing="loose" vertical>
+              <p>
+                Great for niche and independent brands who want to promote
+                sustainability and climate action, while gaining flexibility in
+                their shipping.
+              </p>
+              <p>
+                Attract new customers by offering nature-positive donations,
+                paid for by the savings in supply chain costs. Reach new
+                consumer segments, by letting your cost savings fund product
+                discounts – most shoppers can’t resist a bargain!
+              </p>
+              <Stack distribution="trailing">
+                <ButtonGroup>
+                  <Button primary onClick={handleSubscribe}>
+                    Subscribe
+                  </Button>
+                  <Button onClick={toggleModalActiveWelcome} plain>
+                    Learn more
+                  </Button>
+                </ButtonGroup>
+              </Stack>
             </Stack>
-          </TextContainer>
+          </Card.Section>
         </Card>
+
+        <Modal
+          open={modalActiveWelcome}
+          onClose={toggleModalActiveWelcome}
+          src="https://calendly.com/mandatum-ceo/protect-nature-improve-profitability-at-no-extra-cost"
+        ></Modal>
       </Page>
     );
   }
 
   return (
-    <Page
-      title="Welcome to Mandatum"
-      subtitle="Edit your mandate products."
-      primaryAction={{
-        content: "Add Product",
-        disabled: false,
-        onAction: () => setActiveModal(true),
-      }}
-      secondaryActions={[
-        {
-          content: "Reload Products",
-          disabled: false,
-          onAction: handleRefetch,
-        },
-        // {
-        //   content: "Delete Products",
-        //   disabled: false,
-        //   onAction: deleteApp,
-        // },
-        // {
-        //   content: "Nav Test",
-        //   disabled: false,
-        //   onAction: () => redirect.dispatch(Redirect.Action.APP, "/impact")
-        // }
-      ]}
-    >
-      <Card title="Mandate Products" sectioned>
-        <Card.Section
-          title={`Storefront Widget Status: ${
-            widgetStatus ? "Active" : "Disabled"
-          }`}
+    <div style={{ height: "500px" }}>
+      <AppProvider
+        theme={theme}
+        i18n={{
+          Polaris: {
+            Avatar: {
+              label: "Avatar",
+              labelWithInitials: "Avatar with initials {initials}",
+            },
+            ContextualSaveBar: {
+              save: "Save",
+              discard: "Discard",
+            },
+            TextField: {
+              characterCount: "{count} characters",
+            },
+            TopBar: {
+              toggleMenuLabel: "Toggle menu",
+
+              SearchField: {
+                clearButtonLabel: "Clear",
+                search: "Search",
+              },
+            },
+            Modal: {
+              iFrameTitle: "body markup",
+            },
+            Frame: {
+              skipToContent: "Skip to content",
+              navigationLabel: "Navigation",
+              Navigation: {
+                closeMobileNavigationLabel: "Close navigation",
+              },
+            },
+          },
+        }}
+      >
+        <Frame
+          topBar={topBarMarkup}
+          navigation={navigationMarkup}
+          showMobileNavigation={mobileNavigationActive}
+          onNavigationDismiss={toggleMobileNavigationActive}
+          skipToContentTarget={skipToContentRef.current}
         >
-          <Button
-            destructive={widgetStatus}
-            primary={!widgetStatus}
-            onClick={toggleWidget}
-          >
-            {widgetStatus ? "Disable" : "Enable"}
-          </Button>
-        </Card.Section>
-        <Card.Section title="Products">
-          {data.products.edges.filter(
-            (prod) =>
-              prod.node.privateMetafields.edges.find(
-                (met) => met.node.key === "descuento"
-              )?.node
-          ).length === 0 ? (
-            <TextContainer>
-              {loading || generalLoading ? (
-                <Stack alignment="center" vertical={true}>
-                  <Subheading element="h3">Loading...</Subheading>
-                </Stack>
-              ) : (
-                <Stack alignment="center" vertical={true}>
-                  <Subheading element="h3">No Products</Subheading>
-                  <Button primary onClick={() => setActiveModal(true)}>
-                    Add Products
-                  </Button>
-                </Stack>
-              )}
-            </TextContainer>
-          ) : (
-            <ResourceList
-              loading={loading || generalLoading}
-              resourceName={{ singular: "product", plural: "products" }}
-              items={data.products.edges
-                .filter(
-                  (prod) =>
-                    prod.node.privateMetafields.edges.find(
-                      (met) => met.node.key === "descuento"
-                    )?.node
-                )
-                .map((prod) => {
-                  return {
-                    id: prod.node.id,
-                    title: prod.node.title,
-                    description: prod.node.description,
-                    featuredImage: prod.node.featuredImage?.transformedSrc,
-                    price: `${prod.node.priceRangeV2.maxVariantPrice.amount} ${prod.node.priceRangeV2.maxVariantPrice.currencyCode}`,
-                    discount: prod.node.privateMetafields.edges.find(
-                      (met) => met.node.key === "descuento"
-                    )?.node.value,
-                    days: prod.node.privateMetafields.edges.find(
-                      (met) => met.node.key === "dias_entrega"
-                    )?.node.value,
-                  };
-                })}
-              renderItem={(item) => {
-                const {
-                  title,
-                  description,
-                  featuredImage,
-                  id,
-                  price,
-                  discount,
-                  days,
-                } = item;
-
-                return (
-                  <ResourceItem
-                    id={id}
-                    media={
-                      <Thumbnail
-                        size="large"
-                        alt={title}
-                        source={
-                          featuredImage ||
-                          "https://cdn2.iconfinder.com/data/icons/e-commerce-line-4-1/1024/open_box4-512.png"
-                        }
-                      />
-                    }
-                    accessibilityLabel={`View details for ${title}`}
-                    onClick={() => console.log(id)}
-                    shortcutActions={[
-                      {
-                        content: "Edit",
-                        onAction: () =>
-                          setModalEdit({
-                            active: true,
-                            id,
-                            title,
-                            image: featuredImage,
-                            price,
-                            discount,
-                            delivery: days,
-                          }),
-                      },
-                      {
-                        content: "Delete",
-                        onAction: () => setModalProduct({ active: true, id }),
-                      },
-                    ]}
-                  >
-                    <TextContainer>
-                      <Heading>{title}</Heading>
-                      <p>
-                        <TextStyle variation="strong">{price}</TextStyle>
-                      </p>
-                      <p>
-                        {description.length > 200
-                          ? description.substr(0, 200) + "..."
-                          : description}
-                      </p>
-                      <p>Allowed Discount: {discount}%</p>
-                    </TextContainer>
-                    <p>Delivery Time: {days} Days</p>
-                  </ResourceItem>
-                );
-              }}
-            />
-          )}
-        </Card.Section>
-      </Card>
-      <Modal
-        open={activeModal}
-        onClose={() => setActiveModal(false)}
-        title="Search for a product to add"
-        primaryAction={{
-          content: "Add Product",
-          onAction: handleSelectProduct,
-        }}
-      >
-        <Modal.Section>
-          <Filters
-            queryValue={searchValue}
-            onQueryChange={onQueryChange}
-            onQueryClear={onQueryClear}
-            onClearAll={onQueryClear}
-            filters={[]}
-            queryPlaceholder="Search Products"
-          />
-        </Modal.Section>
-        <Modal.Section>
-          {searchValue.length >= 4 &&
-            (!queryData || queryData?.length === 0) &&
-            !qResults.loading && <p>Products not found</p>}
-          {queryData && queryData.length > 0 && (
-            <ResourceList
-              loading={qResults.loading}
-              resourceName={{ singular: "product", plural: "products" }}
-              items={queryData}
-              selectable={true}
-              selectedItems={selectedProduct ? selectedProduct : undefined}
-              onSelectionChange={handleProductClick}
-              renderItem={(item) => {
-                const {
-                  title,
-                  description,
-                  featuredImage,
-                  id,
-                  priceRangeV2,
-                } = item;
-                const media = (
-                  <Thumbnail
-                    size="large"
-                    alt={title}
-                    source={
-                      featuredImage?.transformedSrc ||
-                      "https://cdn2.iconfinder.com/data/icons/e-commerce-line-4-1/1024/open_box4-512.png"
-                    }
-                  />
-                );
-
-                return (
-                  <ResourceItem
-                    id={id}
-                    media={media}
-                    accessibilityLabel={`View details for ${title}`}
-                    onClick={() => console.log("click")}
-                  >
-                    <h3>
-                      <TextStyle variation="strong">{title}</TextStyle>
-                    </h3>
-                    <p>
-                      {description.length > 50
-                        ? description.substr(0, 50) + "..."
-                        : description}
-                    </p>
-                    <p>
-                      {priceRangeV2.maxVariantPrice.amount}{" "}
-                      {priceRangeV2.maxVariantPrice.currencyCode}
-                    </p>
-                  </ResourceItem>
-                );
-              }}
-            />
-          )}
-        </Modal.Section>
-      </Modal>
-      <Modal
-        open={modalProduct.active}
-        onClose={() => setModalProduct({ active: false, id: undefined })}
-        title="Are you sure?"
-        primaryAction={{
-          content: "Delete Product",
-          onAction: () => handleDeleteProduct(modalProduct.id),
-        }}
-        secondaryActions={[
-          {
-            content: "Cancel",
-            onAction: () => setModalProduct({ active: false, id: undefined }),
-          },
-        ]}
-      ></Modal>
-      <Modal
-        open={modalEdit.active}
-        title={modalEdit.title}
-        onClose={() => setModalEdit((prev) => ({ ...prev, active: false }))}
-        primaryAction={{
-          content: "Update",
-          onAction: () =>
-            handleUpdateProducts(
-              modalEdit.id,
-              modalEdit.discount,
-              modalEdit.delivery
-            ),
-        }}
-        secondaryActions={[
-          {
-            content: "Cancel",
-            onAction: () =>
-              setModalEdit((prev) => ({ ...prev, active: false })),
-          },
-        ]}
-      >
-        <Modal.Section>
-          <Stack vertical alignment="center">
-            <Thumbnail
-              source={
-                modalEdit.image ||
-                "https://cdn2.iconfinder.com/data/icons/e-commerce-line-4-1/1024/open_box4-512.png"
-              }
-              size="large"
-              alt={modalEdit.title}
-            />
-            <Heading>{modalEdit.title}</Heading>
-            <p>
-              <TextStyle variation="strong">{modalEdit.price}</TextStyle>
-            </p>
-            <Stack.Item>
-              <Stack alignment="leading">
-                <TextField
-                  label="Discount"
-                  value={modalEdit.discount}
-                  onChange={(value) =>
-                    setModalEdit((prev) => ({ ...prev, discount: value }))
-                  }
-                  suffix="%"
-                />
-                <TextField
-                  label="Delivery Time"
-                  value={modalEdit.delivery}
-                  onChange={(value) =>
-                    setModalEdit((prev) => ({ ...prev, delivery: value }))
-                  }
-                  suffix="day(s)"
-                />
-              </Stack>
-            </Stack.Item>
-          </Stack>
-        </Modal.Section>
-      </Modal>
-    </Page>
+          {contextualSaveBarMarkup}
+          {/*loadingMarkup*/}
+          {pageMarkup}
+          {toastMarkup}
+          {modalMarkup}
+        </Frame>
+      </AppProvider>
+    </div>
   );
-};
-
-export default Index;
+}
